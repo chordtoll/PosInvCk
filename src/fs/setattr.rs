@@ -1,0 +1,198 @@
+use std::{
+    ffi::CString,
+    mem::MaybeUninit,
+    os::unix::prelude::OsStrExt,
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+use fuser::TimeOrNow;
+use libc::timeval;
+use path_clean::PathClean;
+
+use crate::{
+    fs::{restore_ids, set_ids, stat_path, TTL},
+    fs_to_fuse::FsToFuseAttr,
+    log_acces, log_call, log_more, log_res,
+    pretty_print::PPStat,
+};
+
+use super::InvFS;
+
+impl InvFS {
+    pub fn do_setattr(
+        &mut self,
+        req: &fuser::Request<'_>,
+        ino: u64,
+        mode: Option<u32>,
+        uid: Option<u32>,
+        gid: Option<u32>,
+        size: Option<u64>,
+        atime: Option<fuser::TimeOrNow>,
+        mtime: Option<fuser::TimeOrNow>,
+        ctime: Option<std::time::SystemTime>,
+        fh: Option<u64>,
+        crtime: Option<std::time::SystemTime>,
+        chgtime: Option<std::time::SystemTime>,
+        bkuptime: Option<std::time::SystemTime>,
+        flags: Option<u32>,
+        reply: fuser::ReplyAttr,
+    ) {
+        let callid = log_call!("SETATTR", "ino={}", ino);
+        let ids = set_ids(callid, req);
+        let path = &self
+            .paths
+            .get(ino as usize)
+            .expect("Accessing an inode we haven't seen before")[0];
+        log_more!(callid, "path={:?}", path);
+        let tgt_path = self.base.join(path).clean();
+        log_more!(callid, "tgt_path={:?}", tgt_path);
+        log_acces!(callid, tgt_path);
+        let res = (|| unsafe {
+            let tgt = CString::new(tgt_path.as_os_str().as_bytes()).unwrap();
+            if let Some(v) = mode {
+                log_more!(callid, "mode={}", v);
+                if libc::chmod(tgt.as_ptr(), v) != 0 {
+                    return Err(*libc::__errno_location());
+                }
+            }
+            if let Some(v) = uid {
+                log_more!(callid, "uid={}", v);
+                if libc::chown(tgt.as_ptr(), v, u32::MAX) != 0 {
+                    return Err(*libc::__errno_location());
+                }
+            }
+            if let Some(v) = gid {
+                log_more!(callid, "gid={}", v);
+                if libc::chown(tgt.as_ptr(), u32::MAX, v) != 0 {
+                    return Err(*libc::__errno_location());
+                }
+            }
+            if let Some(v) = size {
+                log_more!(callid, "size={}", v);
+                if libc::truncate(tgt.as_ptr(), v.try_into().unwrap()) != 0 {
+                    return Err(*libc::__errno_location());
+                }
+            }
+            match (atime, mtime) {
+                (Some(a), Some(m)) => {
+                    log_more!(callid, "atime={:?},mtime={:?}", a, m);
+                    let a = if let TimeOrNow::SpecificTime(t) = a {
+                        t
+                    } else {
+                        SystemTime::now()
+                    };
+                    let m = if let TimeOrNow::SpecificTime(t) = m {
+                        t
+                    } else {
+                        SystemTime::now()
+                    };
+                    let a_s = a.duration_since(UNIX_EPOCH).unwrap().as_secs();
+                    let a_u = a.duration_since(UNIX_EPOCH).unwrap().as_micros() % 1_000_000;
+                    let m_s = m.duration_since(UNIX_EPOCH).unwrap().as_secs();
+                    let m_u = m.duration_since(UNIX_EPOCH).unwrap().as_micros() % 1_000_000;
+                    let times = [
+                        timeval {
+                            tv_sec: a_s.try_into().unwrap(),
+                            tv_usec: a_u.try_into().unwrap(),
+                        },
+                        timeval {
+                            tv_sec: m_s.try_into().unwrap(),
+                            tv_usec: m_u.try_into().unwrap(),
+                        },
+                    ];
+                    if libc::utimes(tgt.as_ptr(), times.as_ptr()) != 0 {
+                        return Err(*libc::__errno_location());
+                    }
+                }
+                (Some(a), None) => {
+                    let a = if let TimeOrNow::SpecificTime(t) = a {
+                        t
+                    } else {
+                        SystemTime::now()
+                    };
+                    let a_s = a.duration_since(UNIX_EPOCH).unwrap().as_secs();
+                    let a_u = a.duration_since(UNIX_EPOCH).unwrap().as_micros() % 1_000_000;
+
+                    let mut buf = MaybeUninit::zeroed().assume_init();
+                    libc::stat(tgt.as_ptr(), &mut buf);
+                    let m_s = buf.st_mtime;
+                    let m_u = buf.st_mtime_nsec / 1000;
+
+                    let times = [
+                        timeval {
+                            tv_sec: a_s.try_into().unwrap(),
+                            tv_usec: a_u.try_into().unwrap(),
+                        },
+                        timeval {
+                            tv_sec: m_s.try_into().unwrap(),
+                            tv_usec: m_u.try_into().unwrap(),
+                        },
+                    ];
+                    if libc::utimes(tgt.as_ptr(), times.as_ptr()) != 0 {
+                        return Err(*libc::__errno_location());
+                    }
+                }
+                (None, Some(m)) => {
+                    let mut buf = MaybeUninit::zeroed().assume_init();
+                    libc::stat(tgt.as_ptr(), &mut buf);
+                    let a_s = buf.st_atime;
+                    let a_u = buf.st_atime_nsec / 1000;
+
+                    let m = if let TimeOrNow::SpecificTime(t) = m {
+                        t
+                    } else {
+                        SystemTime::now()
+                    };
+                    let m_s = m.duration_since(UNIX_EPOCH).unwrap().as_secs();
+                    let m_u = m.duration_since(UNIX_EPOCH).unwrap().as_micros() % 1_000_000;
+
+                    let times = [
+                        timeval {
+                            tv_sec: a_s.try_into().unwrap(),
+                            tv_usec: a_u.try_into().unwrap(),
+                        },
+                        timeval {
+                            tv_sec: m_s.try_into().unwrap(),
+                            tv_usec: m_u.try_into().unwrap(),
+                        },
+                    ];
+                    if libc::utimes(tgt.as_ptr(), times.as_ptr()) != 0 {
+                        return Err(*libc::__errno_location());
+                    }
+                }
+                (None, None) => {}
+            }
+            if let Some(v) = ctime {
+                log_more!(callid, "ctime={:?}", v);
+                todo!("SETATTR ctime");
+            }
+            if let Some(v) = fh {
+                log_more!(callid, "fh={}", v);
+            }
+            if let Some(v) = crtime {
+                log_more!(callid, "crtime={:?}", v);
+                todo!("SETATTR crtime");
+            }
+            if let Some(v) = chgtime {
+                log_more!(callid, "chgtime={:?}", v);
+                todo!("SETATTR chgtime");
+            }
+            if let Some(v) = bkuptime {
+                log_more!(callid, "bkuptime={:?}", v);
+                todo!("SETATTR bkuptime");
+            }
+            if let Some(v) = flags {
+                log_more!(callid, "flags={}", v);
+                todo!("SETATTR flags");
+            }
+            stat_path(&tgt_path)
+        })();
+
+        log_res!(callid, "{}", res.ppstat());
+        restore_ids(ids);
+        match res {
+            Ok(v) => reply.attr(&TTL, &v.to_fuse_attr(ino)),
+            Err(v) => reply.error(v),
+        }
+    }
+}
