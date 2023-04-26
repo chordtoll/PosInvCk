@@ -6,7 +6,6 @@ use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     log_call, log_more, log_res,
-    pretty_print::PPStat,
 };
 
 use super::InvFS;
@@ -45,19 +44,19 @@ impl InvFS {
             let tgt = CString::new(tgt_path.as_os_str().as_bytes()).unwrap();
             let res = libc::mknod(tgt.as_ptr(), mode, rdev.into());
             if res == 0 {
-                stat_path(&tgt_path)
+                stat_path(&tgt_path).map(|x| {
+                    let ino = self.paths.len().try_into().unwrap();
+                    self.paths.push(vec![child]);
+                    x.to_fuse_attr(ino)
+                })
             } else {
                 Err(*libc::__errno_location())
             }
         };
-        log_res!(callid, "{}", res.ppstat());
+        log_res!(callid, "{:?}", res);
         restore_ids(ids);
         match res {
-            Ok(attr) => {
-                let ino = self.paths.len();
-                self.paths.push(vec![child]);
-                reply.entry(&TTL, &attr.to_fuse_attr(ino.try_into().unwrap()), 0)
-            }
+            Ok(attr) => reply.entry(&TTL, &attr, 0),
             Err(v) => reply.error(v),
         }
     }

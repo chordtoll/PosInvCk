@@ -13,7 +13,6 @@ use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     log_acces, log_call, log_more, log_res,
-    pretty_print::PPStat,
 };
 
 use super::InvFS;
@@ -185,13 +184,13 @@ impl InvFS {
                 log_more!(callid, "flags={}", v);
                 todo!("SETATTR flags");
             }
-            stat_path(&tgt_path)
+            stat_path(&tgt_path).map(|x| x.to_fuse_attr(ino))
         })();
 
-        log_res!(callid, "{}", res.ppstat());
+        log_res!(callid, "{:?}", res);
         restore_ids(ids);
         match res {
-            Ok(v) => reply.attr(&TTL, &v.to_fuse_attr(ino)),
+            Ok(v) => reply.attr(&TTL, &v),
             Err(v) => reply.error(v),
         }
     }

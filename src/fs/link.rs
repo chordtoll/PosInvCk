@@ -6,7 +6,6 @@ use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     log_call, log_more, log_res,
-    pretty_print::PPStat,
 };
 
 use super::InvFS;
@@ -52,14 +51,14 @@ impl InvFS {
                     .get_mut(ino as usize)
                     .unwrap()
                     .push(child.clone());
-                stat_path(&new_path)
+                stat_path(&new_path).map(|x| x.to_fuse_attr(ino))
             } else {
                 Err(*libc::__errno_location())
             }
         };
-        log_res!(callid, "{}", res.ppstat());
+        log_res!(callid, "{:?}", res);
         match res {
-            Ok(attr) => reply.entry(&TTL, &attr.to_fuse_attr(ino), 0),
+            Ok(attr) => reply.entry(&TTL, &attr, 0),
             Err(v) => reply.error(v),
         }
         restore_ids(ids);

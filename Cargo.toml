@@ -2,7 +2,7 @@
 name = "posix-invariant-checker"
 version = "0.1.0"
 edition = "2021"
-license-file = "LICENSE"
+license = "MIT"
 description = "A FUSE shim to ensure the underlying filesystem is behaving according to the POSIX spec."
 repository = "https://github.com/chordtoll/PosInvCk"
 

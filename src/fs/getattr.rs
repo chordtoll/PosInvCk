@@ -4,7 +4,6 @@ use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     log_call, log_more, log_res,
-    pretty_print::PPStat,
 };
 
 use super::InvFS;
@@ -22,14 +21,14 @@ impl InvFS {
             log_more!(callid, "path={:?}", path);
             let tgt_path = self.base.join(path).clean();
             log_more!(callid, "tgt_path={:?}", tgt_path);
-            unsafe { stat_path(&tgt_path) }
+            unsafe { stat_path(&tgt_path).map(|x| x.to_fuse_attr(ino)) }
         } else {
             Err(libc::ENOENT)
         };
-        log_res!(callid, "{}", res.ppstat());
+        log_res!(callid, "{:?}", res);
         restore_ids(ids);
         match res {
-            Ok(v) => reply.attr(&TTL, &v.to_fuse_attr(ino)),
+            Ok(v) => reply.attr(&TTL, &v),
             Err(v) => reply.error(v),
         }
     }

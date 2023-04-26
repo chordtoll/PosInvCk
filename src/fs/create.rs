@@ -44,7 +44,11 @@ impl InvFS {
             let tgt = CString::new(tgt_path.as_os_str().as_bytes()).unwrap();
             let res = libc::open(tgt.as_ptr(), flags, mode);
             if res != -1 {
-                Ok((stat_path(&tgt_path).unwrap(), res))
+                stat_path(&tgt_path).map(|x| {
+                    let ino = self.paths.len().try_into().unwrap();
+                    self.paths.push(vec![child]);
+                    (x.to_fuse_attr(ino), res)
+                })
             } else {
                 Err(*libc::__errno_location())
             }
@@ -52,17 +56,7 @@ impl InvFS {
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
         match res {
-            Ok((attr, fh)) => {
-                let ino = self.paths.len();
-                self.paths.push(vec![child]);
-                reply.created(
-                    &TTL,
-                    &attr.to_fuse_attr(ino.try_into().unwrap()),
-                    0,
-                    fh.try_into().unwrap(),
-                    0,
-                )
-            }
+            Ok((attr, fh)) => reply.created(&TTL, &attr, 0, fh.try_into().unwrap(), 0),
             Err(v) => reply.error(v),
         }
     }
