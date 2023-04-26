@@ -1,6 +1,6 @@
 [package]
 name = "posix-invariant-checker"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "A FUSE shim to ensure the underlying filesystem is behaving according to the POSIX spec."
