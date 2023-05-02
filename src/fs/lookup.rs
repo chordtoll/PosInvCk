@@ -1,5 +1,3 @@
-use path_clean::PathClean;
-
 use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
@@ -17,16 +15,14 @@ impl InvFS {
         reply: fuser::ReplyEntry,
     ) {
         let callid = log_call!("LOOKUP", "parent={},name={:?}", parent, name);
-        let ids = set_ids(callid, req);
-        let path = &self
+        let ids = set_ids(callid, req,&self.root);
+        let p_path = &self
             .paths
             .get(parent as usize)
             .expect("Accessing an inode we haven't seen before")[0];
-        log_more!(callid, "parent={:?}", path);
-        let child = path.join(name);
+        log_more!(callid, "parent={:?}", p_path);
+        let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
-        let tgt_path = self.base.join(child.clone()).clean();
-        log_more!(callid, "tgt_path={:?}", tgt_path);
         let res = if let Some((ino, _)) = self
             .paths
             .iter()
@@ -34,7 +30,7 @@ impl InvFS {
             .find(|(_, e)| e.contains(&child))
         {
             log_more!(callid, "existing inode: {}", ino);
-            let res = unsafe { stat_path(&tgt_path) };
+            let res = unsafe { stat_path(&child) };
             match res {
                 Ok(v) => {
                     let attr = v.to_fuse_attr(ino.try_into().unwrap());
@@ -43,7 +39,7 @@ impl InvFS {
                 Err(v) => Err(v),
             }
         } else {
-            let res = unsafe { stat_path(&tgt_path) };
+            let res = unsafe { stat_path(&child) };
             match res {
                 Ok(v) => {
                     let ino = self.paths.len();

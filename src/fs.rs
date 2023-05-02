@@ -1,29 +1,28 @@
 use std::{
     collections::BTreeMap, ffi::CString, mem::MaybeUninit, os::unix::prelude::OsStrExt,
-    path::PathBuf, time::Duration,
+    path::{PathBuf, Path}, time::Duration,
 };
 
 use crate::{log_more, logging::CallID};
 use fuser::Filesystem;
 use libc::c_int;
-use path_clean::PathClean;
 use procfs::ProcResult;
 
 const TTL: Duration = Duration::new(0, 0);
 
 pub struct InvFS {
-    base: PathBuf,
+    root: PathBuf,
     paths: Vec<Vec<PathBuf>>,
     dir_fhs: BTreeMap<u64, *mut libc::DIR>,
 }
 
 impl InvFS {
-    pub fn new(base: PathBuf) -> Self {
+    pub fn new(root: PathBuf) -> Self {
         Self {
-            base,
+            root,
             paths: vec![
-                vec![PathBuf::from("").clean()],
-                vec![PathBuf::from("").clean()],
+                vec![PathBuf::from(".")],
+                vec![PathBuf::from(".")],
             ],
             dir_fhs: BTreeMap::new(),
         }
@@ -505,13 +504,14 @@ struct Ids {
     uid: u32,
     gid: u32,
     gids: Vec<u32>,
+    cwd: PathBuf,
 }
 
 fn get_groups(pid: i32) -> ProcResult<Vec<i32>> {
     Ok(procfs::process::Process::new(pid)?.status()?.groups)
 }
 
-fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
+fn set_ids(callid: CallID, req: &fuser::Request<'_>, root: &Path) -> Ids {
     let gids = get_groups(req.pid().try_into().unwrap()).unwrap_or(vec![]);
     log_more!(
         callid,
@@ -526,12 +526,15 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
         let mut gids = [libc::gid_t::MIN; 256];
         let ngroups = libc::getgroups(256, gids.as_mut_ptr() as *mut u32);
         assert_ne!(ngroups, -1, "getgroups failed");
+        let cwd = std::env::current_dir().unwrap();
         Ids {
             uid,
             gid,
             gids: Vec::from(&gids[..ngroups.try_into().unwrap()]),
+            cwd
         }
     };
+    std::env::set_current_dir(root).unwrap();
     unsafe {
         let rc = libc::setgroups(gids.len(), if gids.is_empty() {std::ptr::null()} else {&gids[0] as *const i32 as *const u32});
         if rc != 0 {
@@ -559,6 +562,7 @@ fn restore_ids(ids: Ids) {
             0,
             "setgroups failed"
         );
+        std::env::set_current_dir(ids.cwd).unwrap();
     }
 }
 

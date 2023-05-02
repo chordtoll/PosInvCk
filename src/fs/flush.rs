@@ -15,7 +15,7 @@ impl InvFS {
         reply: fuser::ReplyEmpty,
     ) {
         let callid = log_call!("FLUSH", "ino={},fh={},lock_owner={}", ino, fh, lock_owner);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req,&self.root);
         let res = unsafe {
             let res = libc::fsync(fh.try_into().unwrap());
             if res == 0 {

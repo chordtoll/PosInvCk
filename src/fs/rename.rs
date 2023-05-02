@@ -1,7 +1,5 @@
 use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
-use path_clean::PathClean;
-
 use crate::{
     fs::{restore_ids, set_ids},
     log_call, log_more, log_res,
@@ -29,7 +27,7 @@ impl InvFS {
             newname,
             flags
         );
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req,&self.root);
         let old_parent = &self
             .paths
             .get(parent as usize)
@@ -37,8 +35,6 @@ impl InvFS {
         log_more!(callid, "old_parent={:?}", old_parent);
         let old_child = old_parent.join(name);
         log_more!(callid, "old_child={:?}", old_child);
-        let old_path = self.base.join(old_child.clone()).clean();
-        log_more!(callid, "old_path={:?}", old_path);
         let new_parent = &self
             .paths
             .get(newparent as usize)
@@ -46,11 +42,9 @@ impl InvFS {
         log_more!(callid, "new_parent={:?}", new_parent);
         let new_child = new_parent.join(newname);
         log_more!(callid, "new_child={:?}", new_child);
-        let new_path = self.base.join(new_child.clone()).clean();
-        log_more!(callid, "new_path={:?}", new_path);
         let res = unsafe {
-            let old = CString::new(old_path.as_os_str().as_bytes()).unwrap();
-            let new = CString::new(new_path.as_os_str().as_bytes()).unwrap();
+            let old = CString::new(old_child.as_os_str().as_bytes()).unwrap();
+            let new = CString::new(new_child.as_os_str().as_bytes()).unwrap();
             let res = libc::rename(old.as_ptr(), new.as_ptr());
             if res == 0 {
                 Ok(())

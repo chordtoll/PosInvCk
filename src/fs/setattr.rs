@@ -7,7 +7,6 @@ use std::{
 
 use fuser::TimeOrNow;
 use libc::timeval;
-use path_clean::PathClean;
 
 use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
@@ -37,17 +36,15 @@ impl InvFS {
         reply: fuser::ReplyAttr,
     ) {
         let callid = log_call!("SETATTR", "ino={}", ino);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req,&self.root);
         let path = &self
             .paths
             .get(ino as usize)
             .expect("Accessing an inode we haven't seen before")[0];
         log_more!(callid, "path={:?}", path);
-        let tgt_path = self.base.join(path).clean();
-        log_more!(callid, "tgt_path={:?}", tgt_path);
-        log_acces!(callid, tgt_path);
+        log_acces!(callid, path);
         let res = (|| unsafe {
-            let tgt = CString::new(tgt_path.as_os_str().as_bytes()).unwrap();
+            let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();
             if let Some(v) = mode {
                 log_more!(callid, "mode={}", v);
                 if libc::chmod(tgt.as_ptr(), v) != 0 {
@@ -184,7 +181,7 @@ impl InvFS {
                 log_more!(callid, "flags={}", v);
                 todo!("SETATTR flags");
             }
-            stat_path(&tgt_path).map(|x| x.to_fuse_attr(ino))
+            stat_path(&path).map(|x| x.to_fuse_attr(ino))
         })();
 
         log_res!(callid, "{:?}", res);

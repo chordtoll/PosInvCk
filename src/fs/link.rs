@@ -1,7 +1,5 @@
 use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
-use path_clean::PathClean;
-
 use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
@@ -26,32 +24,28 @@ impl InvFS {
             newparent,
             newname,
         );
-        let ids = set_ids(callid, req);
-        let path = &self
+        let ids = set_ids(callid, req,&self.root);
+        let p_path = &self
             .paths
             .get(newparent as usize)
             .expect("Accessing an inode we haven't seen before")[0];
-        log_more!(callid, "newparent={:?}", path);
-        let child = path.join(newname);
-        log_more!(callid, "newchild={:?}", child);
-        let new_path = self.base.join(child.clone()).clean();
-        log_more!(callid, "new_path={:?}", new_path);
+        log_more!(callid, "newparent={:?}", p_path);
+        let newchild = p_path.join(newname);
+        log_more!(callid, "newchild={:?}", newchild);
         let old_file = &self
             .paths
             .get(ino as usize)
             .expect("Accessing an inode we haven't seen before")[0];
-        let old_path = self.base.join(old_file.clone()).clean();
-        log_more!(callid, "old_path={:?}", old_path);
         let res = unsafe {
-            let old = CString::new(old_path.as_os_str().as_bytes()).unwrap();
-            let new = CString::new(new_path.as_os_str().as_bytes()).unwrap();
+            let old = CString::new(old_file.as_os_str().as_bytes()).unwrap();
+            let new = CString::new(newchild.as_os_str().as_bytes()).unwrap();
             let res = libc::link(old.as_ptr(), new.as_ptr());
             if res == 0 {
                 self.paths
                     .get_mut(ino as usize)
                     .unwrap()
-                    .push(child.clone());
-                stat_path(&new_path).map(|x| x.to_fuse_attr(ino))
+                    .push(newchild.clone());
+                stat_path(&newchild).map(|x| x.to_fuse_attr(ino))
             } else {
                 Err(*libc::__errno_location())
             }

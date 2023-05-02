@@ -1,8 +1,6 @@
 use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use libc::c_void;
-use path_clean::PathClean;
-
 use crate::{
     fs::{restore_ids, set_ids},
     log_call, log_more, log_res,
@@ -20,17 +18,15 @@ impl InvFS {
         reply: fuser::ReplyXattr,
     ) {
         let callid = log_call!("GETXATTR", "ino={},name={:?},size={:x}", ino, name, size);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req,&self.root);
         let path = &self
             .paths
             .get(ino as usize)
             .expect("Accessing an inode we haven't seen before")[0];
         log_more!(callid, "path={:?}", path);
-        let tgt_path = self.base.join(path).clean();
-        log_more!(callid, "tgt_path={:?}", tgt_path);
         let res = unsafe {
             let nm = CString::new(name.as_bytes()).unwrap();
-            let tgt = CString::new(tgt_path.as_os_str().as_bytes()).unwrap();
+            let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();
             let mut buf = vec![0u8; size.try_into().unwrap()];
             let res = libc::getxattr(
                 tgt.as_ptr(),

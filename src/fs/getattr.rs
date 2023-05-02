@@ -1,5 +1,3 @@
-use path_clean::PathClean;
-
 use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
@@ -11,7 +9,7 @@ use super::InvFS;
 impl InvFS {
     pub fn do_getattr(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
         let callid = log_call!("GETATTR", "ino={}", ino);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req,&self.root);
         let res = if let Some(path) = &self
             .paths
             .get(ino as usize)
@@ -19,9 +17,7 @@ impl InvFS {
             .get(0)
         {
             log_more!(callid, "path={:?}", path);
-            let tgt_path = self.base.join(path).clean();
-            log_more!(callid, "tgt_path={:?}", tgt_path);
-            unsafe { stat_path(&tgt_path).map(|x| x.to_fuse_attr(ino)) }
+            unsafe { stat_path(&path).map(|x| x.to_fuse_attr(ino)) }
         } else {
             Err(libc::ENOENT)
         };

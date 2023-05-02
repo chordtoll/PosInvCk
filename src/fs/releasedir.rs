@@ -15,7 +15,7 @@ impl InvFS {
         reply: fuser::ReplyEmpty,
     ) {
         let callid = log_call!("RELEASEDIR", "ino={},fh={},flags={}", ino, fh, flags);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req,&self.root);
         let dirp = self.dir_fhs.remove(&fh).unwrap();
         let res = unsafe {
             let res = libc::closedir(dirp);

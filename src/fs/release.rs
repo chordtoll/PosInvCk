@@ -25,7 +25,7 @@ impl InvFS {
             lock_owner,
             flush
         );
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req,&self.root);
         let res = unsafe {
             let res = libc::close(fh.try_into().unwrap());
             if res == 0 {
