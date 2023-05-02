@@ -566,7 +566,7 @@ fn restore_ids(ids: Ids) {
     }
 }
 
-unsafe fn stat_path(tgt_path: &PathBuf) -> Result<libc::stat, i32> {
+unsafe fn stat_path(tgt_path: &Path) -> Result<libc::stat, i32> {
     let tgt = CString::new(tgt_path.as_os_str().as_bytes()).unwrap();
     let mut buf = MaybeUninit::zeroed().assume_init();
     let res = libc::lstat(tgt.as_ptr(), &mut buf);

@@ -17,7 +17,7 @@ impl InvFS {
             .get(0)
         {
             log_more!(callid, "path={:?}", path);
-            unsafe { stat_path(&path).map(|x| x.to_fuse_attr(ino)) }
+            unsafe { stat_path(path).map(|x| x.to_fuse_attr(ino)) }
         } else {
             Err(libc::ENOENT)
         };

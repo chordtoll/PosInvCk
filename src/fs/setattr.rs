@@ -120,8 +120,8 @@ impl InvFS {
                             tv_usec: a_u.try_into().unwrap(),
                         },
                         timeval {
-                            tv_sec: m_s.try_into().unwrap(),
-                            tv_usec: m_u.try_into().unwrap(),
+                            tv_sec: m_s,
+                            tv_usec: m_u,
                         },
                     ];
                     if libc::utimes(tgt.as_ptr(), times.as_ptr()) != 0 {
@@ -144,8 +144,8 @@ impl InvFS {
 
                     let times = [
                         timeval {
-                            tv_sec: a_s.try_into().unwrap(),
-                            tv_usec: a_u.try_into().unwrap(),
+                            tv_sec: a_s,
+                            tv_usec: a_u,
                         },
                         timeval {
                             tv_sec: m_s.try_into().unwrap(),

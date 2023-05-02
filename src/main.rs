@@ -8,7 +8,7 @@ fn main() {
     let base = std::env::current_dir().unwrap().join(base);
 
     fuser::mount2(
-        InvFS::new(base.into()),
+        InvFS::new(base),
         mountpoint,
         &[MountOption::AutoUnmount, MountOption::AllowOther],
     )

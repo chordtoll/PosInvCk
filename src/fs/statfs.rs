@@ -30,11 +30,11 @@ impl InvFS {
         restore_ids(ids);
         match res {
             Ok(v) => reply.statfs(
-                v.f_blocks.try_into().unwrap(),
-                v.f_bfree.try_into().unwrap(),
-                v.f_bavail.try_into().unwrap(),
-                v.f_files.try_into().unwrap(),
-                v.f_ffree.try_into().unwrap(),
+                v.f_blocks,
+                v.f_bfree,
+                v.f_bavail,
+                v.f_files,
+                v.f_ffree,
                 v.f_bsize.try_into().unwrap(),
                 v.f_namelen.try_into().unwrap(),
                 v.f_frsize.try_into().unwrap(),

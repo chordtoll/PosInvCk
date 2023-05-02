@@ -25,7 +25,7 @@ impl InvFS {
         let res = unsafe {
             let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();
             let res = libc::opendir(tgt.as_ptr());
-            if res != std::ptr::null_mut() {
+            if !res.is_null() {
                 Ok(res)
             } else {
                 Err(*libc::__errno_location())

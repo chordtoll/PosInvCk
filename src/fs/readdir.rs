@@ -28,7 +28,7 @@ impl InvFS {
             libc::seekdir(*dir, offset);
             *libc::__errno_location() = 0;
             let res = libc::readdir(*dir);
-            if res == std::ptr::null_mut() {
+            if res.is_null() {
                 if *libc::__errno_location() == 0 {
                     Ok(None)
                 } else {

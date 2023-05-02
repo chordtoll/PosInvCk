@@ -82,7 +82,7 @@ impl FsToFuseAttr for libc::stat {
                 ))
                 .unwrap(),
             crtime: UNIX_EPOCH,
-            kind: kind,
+            kind,
             perm: perm.try_into().unwrap(),
             nlink: self.st_nlink.try_into().unwrap(),
             uid: self.st_uid,
