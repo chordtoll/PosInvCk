@@ -525,7 +525,7 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
         let gid = libc::getegid();
         let mut gids = [libc::gid_t::MIN; 256];
         let ngroups = libc::getgroups(256, gids.as_mut_ptr() as *mut u32);
-        assert_ne!(ngroups, -1);
+        assert_ne!(ngroups, -1, "getgroups failed");
         Ids {
             uid,
             gid,
@@ -546,13 +546,14 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
 }
 fn restore_ids(ids: Ids) {
     unsafe {
-        assert_eq!(libc::seteuid(ids.uid), 0);
-        assert_eq!(libc::geteuid(), ids.uid);
-        assert_eq!(libc::setegid(ids.gid), 0);
-        assert_eq!(libc::getegid(), ids.gid);
+        assert_eq!(libc::seteuid(ids.uid), 0, "seteuid failed");
+        assert_eq!(libc::geteuid(), ids.uid,"failed to restore euid");
+        assert_eq!(libc::setegid(ids.gid), 0,"setegid failed");
+        assert_eq!(libc::getegid(), ids.gid,"failed to restore egid");
         assert_eq!(
             libc::setgroups(ids.gids.len(), &ids.gids[0] as *const u32),
-            0
+            0,
+            "setgroups failed"
         );
     }
 }
