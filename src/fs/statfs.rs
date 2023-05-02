@@ -1,7 +1,7 @@
 use std::{ffi::CString, mem::MaybeUninit, os::unix::prelude::OsStrExt};
 
 use crate::{
-    fs::{restore_ids, set_ids},
+    fs::{chdirin, chdirout, restore_ids, set_ids},
     log_call, log_more, log_res,
 };
 
@@ -10,7 +10,8 @@ use super::InvFS;
 impl InvFS {
     pub fn do_statfs(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyStatfs) {
         let callid = log_call!("STATFS", "ino={}", ino);
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
@@ -25,6 +26,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(v) => reply.statfs(
                 v.f_blocks,

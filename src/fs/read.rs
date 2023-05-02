@@ -1,7 +1,7 @@
 use libc::c_void;
 
 use crate::{
-    fs::{restore_ids, set_ids},
+    fs::{chdirin, chdirout, restore_ids, set_ids},
     log_call, log_res,
 };
 
@@ -29,7 +29,8 @@ impl InvFS {
             flags,
             lock_owner
         );
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let res = unsafe {
             let offs = libc::lseek(fh as i32, offset, libc::SEEK_SET);
             assert_eq!(offs, offset, "failed to seek");
@@ -40,6 +41,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(v) => reply.data(&v),
             Err(e) => reply.error(e),

@@ -1,5 +1,5 @@
 use crate::{
-    fs::{restore_ids, set_ids},
+    fs::{chdirin, chdirout, restore_ids, set_ids},
     log_call, log_res,
 };
 
@@ -25,7 +25,8 @@ impl InvFS {
             lock_owner,
             flush
         );
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let res = unsafe {
             let res = libc::close(fh.try_into().unwrap());
             if res == 0 {
@@ -36,6 +37,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(()) => reply.ok(),
             Err(e) => reply.error(e),

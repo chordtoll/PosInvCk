@@ -1,7 +1,7 @@
 use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use crate::{
-    fs::{restore_ids, set_ids},
+    fs::{chdirin, chdirout, restore_ids, set_ids},
     log_call, log_more, log_res,
 };
 
@@ -16,7 +16,8 @@ impl InvFS {
         reply: fuser::ReplyEmpty,
     ) {
         let callid = log_call!("UNLINK", "parent={},name={:?}", parent, name);
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let p_path = self.paths.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
@@ -32,6 +33,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(()) => {
                 self.paths.remove(&child);

@@ -9,7 +9,7 @@ use fuser::TimeOrNow;
 use libc::timeval;
 
 use crate::{
-    fs::{restore_ids, set_ids, stat_path, TTL},
+    fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     log_call, log_more, log_res,
 };
@@ -36,7 +36,8 @@ impl InvFS {
         reply: fuser::ReplyAttr,
     ) {
         let callid = log_call!("SETATTR", "ino={}", ino);
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = (|| unsafe {
@@ -182,6 +183,7 @@ impl InvFS {
 
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(v) => reply.attr(&TTL, &v),
             Err(v) => reply.error(v),

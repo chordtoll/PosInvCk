@@ -1,5 +1,5 @@
 use crate::{
-    fs::{restore_ids, set_ids},
+    fs::{chdirin, chdirout, restore_ids, set_ids},
     log_call, log_res,
 };
 
@@ -15,7 +15,8 @@ impl InvFS {
         reply: fuser::ReplyEmpty,
     ) {
         let callid = log_call!("RELEASEDIR", "ino={},fh={},flags={}", ino, fh, flags);
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let dirp = self.dir_fhs.remove(&fh).unwrap();
         let res = unsafe {
             let res = libc::closedir(dirp);
@@ -27,6 +28,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(()) => reply.ok(),
             Err(e) => reply.error(e),

@@ -1,5 +1,5 @@
 use crate::{
-    fs::{restore_ids, set_ids},
+    fs::{chdirin, chdirout, restore_ids, set_ids},
     log_call, log_res,
 };
 
@@ -15,7 +15,8 @@ impl InvFS {
         reply: fuser::ReplyEmpty,
     ) {
         let callid = log_call!("FSYNC", "ino={},fh={},datasync={}", ino, fh, datasync);
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let res = unsafe {
             let res = if datasync {
                 libc::fdatasync(fh.try_into().unwrap())
@@ -30,6 +31,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(()) => {
                 reply.ok();

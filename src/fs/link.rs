@@ -1,7 +1,7 @@
 use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use crate::{
-    fs::{restore_ids, set_ids, stat_path, TTL},
+    fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     log_call, log_more, log_res,
 };
@@ -24,7 +24,8 @@ impl InvFS {
             newparent,
             newname,
         );
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let p_path = self.paths.get(newparent);
         log_more!(callid, "newparent={:?}", p_path);
         let newchild = p_path.join(newname);
@@ -42,10 +43,11 @@ impl InvFS {
             }
         };
         log_res!(callid, "{:?}", res);
+        restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(attr) => reply.entry(&TTL, &attr, 0),
             Err(v) => reply.error(v),
         }
-        restore_ids(ids);
     }
 }

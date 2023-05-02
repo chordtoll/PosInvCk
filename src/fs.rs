@@ -505,14 +505,23 @@ struct Ids {
     uid: u32,
     gid: u32,
     gids: Vec<u32>,
-    cwd: PathBuf,
 }
 
 fn get_groups(pid: i32) -> ProcResult<Vec<i32>> {
     Ok(procfs::process::Process::new(pid)?.status()?.groups)
 }
 
-fn set_ids(callid: CallID, req: &fuser::Request<'_>, root: &Path) -> Ids {
+pub fn chdirin(root: &Path) -> PathBuf {
+    let cwd = std::env::current_dir().unwrap();
+    std::env::set_current_dir(root).unwrap();
+    cwd
+}
+
+pub fn chdirout(prev: PathBuf) {
+    std::env::set_current_dir(prev).unwrap();
+}
+
+fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
     let gids = get_groups(req.pid().try_into().unwrap()).unwrap_or(vec![]);
     log_more!(
         callid,
@@ -527,15 +536,12 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>, root: &Path) -> Ids {
         let mut gids = [libc::gid_t::MIN; 256];
         let ngroups = libc::getgroups(256, gids.as_mut_ptr() as *mut u32);
         assert_ne!(ngroups, -1, "getgroups failed");
-        let cwd = std::env::current_dir().unwrap();
         Ids {
             uid,
             gid,
             gids: Vec::from(&gids[..ngroups.try_into().unwrap()]),
-            cwd,
         }
     };
-    std::env::set_current_dir(root).unwrap();
     unsafe {
         let rc = libc::setgroups(
             gids.len(),
@@ -577,7 +583,6 @@ fn restore_ids(ids: Ids) {
             0,
             "setgroups failed"
         );
-        std::env::set_current_dir(ids.cwd).unwrap();
     }
 }
 

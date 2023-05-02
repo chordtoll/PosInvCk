@@ -1,7 +1,7 @@
 use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use crate::{
-    fs::{restore_ids, set_ids},
+    fs::{chdirin, chdirout, restore_ids, set_ids},
     log_call, log_more, log_res,
 };
 
@@ -16,7 +16,8 @@ impl InvFS {
         reply: fuser::ReplyXattr,
     ) {
         let callid = log_call!("LISTXATTR", "ino={},size={:x}", ino, size);
-        let ids = set_ids(callid, req, &self.root);
+        let cwd = chdirin(&self.root);
+        let ids = set_ids(callid, req);
         let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
@@ -36,6 +37,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        chdirout(cwd);
         match res {
             Ok(v) => reply.data(&v),
             Err(v) => reply.error(v),
