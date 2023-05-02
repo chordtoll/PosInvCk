@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "A FUSE shim to ensure the underlying filesystem is behaving according to the POSIX spec."
 repository = "https://github.com/chordtoll/PosInvCk"
+rust-version = "1.66.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
