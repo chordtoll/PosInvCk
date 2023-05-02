@@ -16,7 +16,7 @@ impl InvFS {
         reply: fuser::ReplyXattr,
     ) {
         let callid = log_call!("LISTXATTR", "ino={},size={:x}", ino, size);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let path = &self
             .paths
             .get(ino as usize)

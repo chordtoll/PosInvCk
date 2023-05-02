@@ -1,6 +1,10 @@
 use std::{
-    collections::BTreeMap, ffi::CString, mem::MaybeUninit, os::unix::prelude::OsStrExt,
-    path::{PathBuf, Path}, time::Duration,
+    collections::BTreeMap,
+    ffi::CString,
+    mem::MaybeUninit,
+    os::unix::prelude::OsStrExt,
+    path::{Path, PathBuf},
+    time::Duration,
 };
 
 use crate::{log_more, logging::CallID};
@@ -20,10 +24,7 @@ impl InvFS {
     pub fn new(root: PathBuf) -> Self {
         Self {
             root,
-            paths: vec![
-                vec![PathBuf::from(".")],
-                vec![PathBuf::from(".")],
-            ],
+            paths: vec![vec![PathBuf::from(".")], vec![PathBuf::from(".")]],
             dir_fhs: BTreeMap::new(),
         }
     }
@@ -531,12 +532,19 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>, root: &Path) -> Ids {
             uid,
             gid,
             gids: Vec::from(&gids[..ngroups.try_into().unwrap()]),
-            cwd
+            cwd,
         }
     };
     std::env::set_current_dir(root).unwrap();
     unsafe {
-        let rc = libc::setgroups(gids.len(), if gids.is_empty() {std::ptr::null()} else {&gids[0] as *const i32 as *const u32});
+        let rc = libc::setgroups(
+            gids.len(),
+            if gids.is_empty() {
+                std::ptr::null()
+            } else {
+                &gids[0] as *const i32 as *const u32
+            },
+        );
         if rc != 0 {
             panic!("{}", *libc::__errno_location());
         }
@@ -554,11 +562,18 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>, root: &Path) -> Ids {
 fn restore_ids(ids: Ids) {
     unsafe {
         assert_eq!(libc::seteuid(ids.uid), 0, "seteuid failed");
-        assert_eq!(libc::geteuid(), ids.uid,"failed to restore euid");
-        assert_eq!(libc::setegid(ids.gid), 0,"setegid failed");
-        assert_eq!(libc::getegid(), ids.gid,"failed to restore egid");
+        assert_eq!(libc::geteuid(), ids.uid, "failed to restore euid");
+        assert_eq!(libc::setegid(ids.gid), 0, "setegid failed");
+        assert_eq!(libc::getegid(), ids.gid, "failed to restore egid");
         assert_eq!(
-            libc::setgroups(ids.gids.len(), if ids.gids.is_empty() {std::ptr::null()} else {&ids.gids[0] as *const u32}),
+            libc::setgroups(
+                ids.gids.len(),
+                if ids.gids.is_empty() {
+                    std::ptr::null()
+                } else {
+                    &ids.gids[0] as *const u32
+                }
+            ),
             0,
             "setgroups failed"
         );

@@ -16,7 +16,7 @@ impl InvFS {
         reply: fuser::ReplyEmpty,
     ) {
         let callid = log_call!("RMDIR", "parent={},name={:?}", parent, name);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let p_path = &self
             .paths
             .get(parent as usize)

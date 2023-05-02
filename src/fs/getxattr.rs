@@ -1,10 +1,10 @@
 use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
-use libc::c_void;
 use crate::{
     fs::{restore_ids, set_ids},
     log_call, log_more, log_res,
 };
+use libc::c_void;
 
 use super::InvFS;
 
@@ -18,7 +18,7 @@ impl InvFS {
         reply: fuser::ReplyXattr,
     ) {
         let callid = log_call!("GETXATTR", "ino={},name={:?},size={:x}", ino, name, size);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let path = &self
             .paths
             .get(ino as usize)

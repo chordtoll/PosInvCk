@@ -16,7 +16,7 @@ impl InvFS {
         reply: fuser::ReplyOpen,
     ) {
         let callid = log_call!("OPEN", "ino={},flags={:x}", ino, flags);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let path = &self
             .paths
             .get(ino as usize)

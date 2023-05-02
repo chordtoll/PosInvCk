@@ -10,7 +10,7 @@ use super::InvFS;
 impl InvFS {
     pub fn do_readlink(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyData) {
         let callid = log_call!("READLINK", "ino={}", ino);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let path = &self
             .paths
             .get(ino as usize)
@@ -21,7 +21,11 @@ impl InvFS {
             let mut buf = vec![0u8; (libc::PATH_MAX + 1).try_into().unwrap()];
             let res = libc::readlink(tgt.as_ptr(), buf.as_mut_ptr() as *mut i8, buf.len());
             if res != -1 {
-                assert_ne!(res, (libc::PATH_MAX + 1).try_into().unwrap(),"overflowed readlink");
+                assert_ne!(
+                    res,
+                    (libc::PATH_MAX + 1).try_into().unwrap(),
+                    "overflowed readlink"
+                );
                 buf.truncate(res.try_into().unwrap());
                 Ok(buf)
             } else {

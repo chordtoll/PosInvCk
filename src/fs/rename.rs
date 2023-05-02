@@ -27,7 +27,7 @@ impl InvFS {
             newname,
             flags
         );
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let old_parent = &self
             .paths
             .get(parent as usize)

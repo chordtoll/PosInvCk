@@ -22,7 +22,7 @@ impl InvFS {
         mut reply: fuser::ReplyDirectory,
     ) {
         let callid = log_call!("READDIR", "ino={},fh={:x},offset={:x}", ino, fh, offset);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let dir = self.dir_fhs.get(&fh).unwrap();
         let res = unsafe {
             libc::seekdir(*dir, offset);

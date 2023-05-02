@@ -10,7 +10,7 @@ use super::InvFS;
 impl InvFS {
     pub fn do_statfs(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyStatfs) {
         let callid = log_call!("STATFS", "ino={}", ino);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let path = &self
             .paths
             .get(ino as usize)

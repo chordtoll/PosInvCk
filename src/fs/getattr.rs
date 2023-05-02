@@ -9,7 +9,7 @@ use super::InvFS;
 impl InvFS {
     pub fn do_getattr(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
         let callid = log_call!("GETATTR", "ino={}", ino);
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let res = if let Some(path) = &self
             .paths
             .get(ino as usize)

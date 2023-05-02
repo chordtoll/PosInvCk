@@ -31,10 +31,10 @@ impl InvFS {
             flags,
             lock_owner
         );
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let res = unsafe {
             let offs = libc::lseek(fh as i32, offset, libc::SEEK_SET);
-            assert_eq!(offs, offset,"failed to seek");
+            assert_eq!(offs, offset, "failed to seek");
             let res = libc::write(fh as i32, data.as_ptr() as *mut c_void, data.len());
             if res != -1 {
                 Ok(res)

@@ -24,7 +24,7 @@ impl InvFS {
             name,
             link
         );
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let p_path = &self
             .paths
             .get(parent as usize)

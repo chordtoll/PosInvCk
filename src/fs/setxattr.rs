@@ -29,7 +29,7 @@ impl InvFS {
             flags,
             position
         );
-        let ids = set_ids(callid, req,&self.root);
+        let ids = set_ids(callid, req, &self.root);
         let path = &self
             .paths
             .get(ino as usize)
