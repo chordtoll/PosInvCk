@@ -29,10 +29,7 @@ impl InvFS {
             rdev
         );
         let ids = set_ids(callid, req, &self.root);
-        let p_path = &self
-            .paths
-            .get(parent as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let p_path = self.paths.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
@@ -41,8 +38,7 @@ impl InvFS {
             let res = libc::mknod(tgt.as_ptr(), mode, rdev.into());
             if res == 0 {
                 stat_path(&child).map(|x| {
-                    let ino = self.paths.len().try_into().unwrap();
-                    self.paths.push(vec![child]);
+                    let ino = self.paths.insert(x.st_ino, child);
                     x.to_fuse_attr(ino)
                 })
             } else {

@@ -16,40 +16,14 @@ impl InvFS {
     ) {
         let callid = log_call!("LOOKUP", "parent={},name={:?}", parent, name);
         let ids = set_ids(callid, req, &self.root);
-        let p_path = &self
-            .paths
-            .get(parent as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let p_path = self.paths.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
-        let res = if let Some((ino, _)) = self
-            .paths
-            .iter()
-            .enumerate()
-            .find(|(_, e)| e.contains(&child))
-        {
-            log_more!(callid, "existing inode: {}", ino);
-            let res = unsafe { stat_path(&child) };
-            match res {
-                Ok(v) => {
-                    let attr = v.to_fuse_attr(ino.try_into().unwrap());
-                    Ok(attr)
-                }
-                Err(v) => Err(v),
-            }
-        } else {
-            let res = unsafe { stat_path(&child) };
-            match res {
-                Ok(v) => {
-                    let ino = self.paths.len();
-                    self.paths.push(vec![child]);
-                    let attr = v.to_fuse_attr(ino.try_into().unwrap());
-                    Ok(attr)
-                }
-                Err(v) => Err(v),
-            }
-        };
+        let res = unsafe { stat_path(&child) }.map(|v| {
+            let ino = self.paths.insert(v.st_ino, child);
+            v.to_fuse_attr(ino)
+        });
         log_res!(callid, "{:#?}", res);
         restore_ids(ids);
         match res {

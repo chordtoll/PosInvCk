@@ -17,10 +17,7 @@ impl InvFS {
     ) {
         let callid = log_call!("RMDIR", "parent={},name={:?}", parent, name);
         let ids = set_ids(callid, req, &self.root);
-        let p_path = &self
-            .paths
-            .get(parent as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let p_path = self.paths.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
@@ -37,9 +34,7 @@ impl InvFS {
         restore_ids(ids);
         match res {
             Ok(()) => {
-                self.paths
-                    .iter_mut()
-                    .for_each(|x| x.retain(|x| *x != child));
+                self.paths.remove(&child);
                 reply.ok()
             }
             Err(v) => reply.error(v),

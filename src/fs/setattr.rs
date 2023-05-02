@@ -11,7 +11,7 @@ use libc::timeval;
 use crate::{
     fs::{restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
-    log_acces, log_call, log_more, log_res,
+    log_call, log_more, log_res,
 };
 
 use super::InvFS;
@@ -37,12 +37,8 @@ impl InvFS {
     ) {
         let callid = log_call!("SETATTR", "ino={}", ino);
         let ids = set_ids(callid, req, &self.root);
-        let path = &self
-            .paths
-            .get(ino as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
-        log_acces!(callid, path);
         let res = (|| unsafe {
             let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();
             if let Some(v) = mode {
@@ -181,7 +177,7 @@ impl InvFS {
                 log_more!(callid, "flags={}", v);
                 todo!("SETATTR flags");
             }
-            stat_path(&path).map(|x| x.to_fuse_attr(ino))
+            stat_path(path).map(|x| x.to_fuse_attr(ino))
         })();
 
         log_res!(callid, "{:?}", res);

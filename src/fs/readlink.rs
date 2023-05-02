@@ -11,10 +11,7 @@ impl InvFS {
     pub fn do_readlink(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyData) {
         let callid = log_call!("READLINK", "ino={}", ino);
         let ids = set_ids(callid, req, &self.root);
-        let path = &self
-            .paths
-            .get(ino as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
             let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();

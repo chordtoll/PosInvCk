@@ -28,17 +28,11 @@ impl InvFS {
             flags
         );
         let ids = set_ids(callid, req, &self.root);
-        let old_parent = &self
-            .paths
-            .get(parent as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let old_parent = self.paths.get(parent);
         log_more!(callid, "old_parent={:?}", old_parent);
         let old_child = old_parent.join(name);
         log_more!(callid, "old_child={:?}", old_child);
-        let new_parent = &self
-            .paths
-            .get(newparent as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let new_parent = self.paths.get(newparent);
         log_more!(callid, "new_parent={:?}", new_parent);
         let new_child = new_parent.join(newname);
         log_more!(callid, "new_child={:?}", new_child);
@@ -57,13 +51,7 @@ impl InvFS {
         match res {
             Ok(()) => {
                 log_more!(callid, "{:?}", self.paths);
-                self.paths.iter_mut().for_each(|x| {
-                    x.iter_mut().for_each(|x| {
-                        if *x == old_child {
-                            *x = new_child.clone()
-                        }
-                    })
-                });
+                self.paths.rename(old_child, new_child);
                 log_more!(callid, "{:?}", self.paths);
                 reply.ok()
             }

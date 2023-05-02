@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{log_more, logging::CallID};
+use crate::{inode_mapper::InodeMapper, log_more, logging::CallID};
 use fuser::Filesystem;
 use libc::c_int;
 use procfs::ProcResult;
@@ -16,7 +16,7 @@ const TTL: Duration = Duration::new(0, 0);
 
 pub struct InvFS {
     pub(crate) root: PathBuf,
-    paths: Vec<Vec<PathBuf>>,
+    paths: InodeMapper,
     dir_fhs: BTreeMap<u64, *mut libc::DIR>,
 }
 
@@ -24,7 +24,7 @@ impl InvFS {
     pub fn new(root: PathBuf) -> Self {
         Self {
             root,
-            paths: vec![vec![PathBuf::from(".")], vec![PathBuf::from(".")]],
+            paths: InodeMapper::new(),
             dir_fhs: BTreeMap::new(),
         }
     }

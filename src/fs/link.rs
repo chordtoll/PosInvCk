@@ -25,26 +25,17 @@ impl InvFS {
             newname,
         );
         let ids = set_ids(callid, req, &self.root);
-        let p_path = &self
-            .paths
-            .get(newparent as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let p_path = self.paths.get(newparent);
         log_more!(callid, "newparent={:?}", p_path);
         let newchild = p_path.join(newname);
         log_more!(callid, "newchild={:?}", newchild);
-        let old_file = &self
-            .paths
-            .get(ino as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let old_file = self.paths.get(ino);
         let res = unsafe {
             let old = CString::new(old_file.as_os_str().as_bytes()).unwrap();
             let new = CString::new(newchild.as_os_str().as_bytes()).unwrap();
             let res = libc::link(old.as_ptr(), new.as_ptr());
             if res == 0 {
-                self.paths
-                    .get_mut(ino as usize)
-                    .unwrap()
-                    .push(newchild.clone());
+                self.paths.insert(ino, newchild.clone());
                 stat_path(&newchild).map(|x| x.to_fuse_attr(ino))
             } else {
                 Err(*libc::__errno_location())

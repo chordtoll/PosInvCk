@@ -17,10 +17,7 @@ impl InvFS {
     ) {
         let callid = log_call!("REMOVEXATTR", "ino={},name={:?}", ino, name);
         let ids = set_ids(callid, req, &self.root);
-        let path = &self
-            .paths
-            .get(ino as usize)
-            .expect("Accessing an inode we haven't seen before")[0];
+        let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
             let nm = CString::new(name.as_bytes()).unwrap();
