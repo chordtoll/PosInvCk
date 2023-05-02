@@ -533,6 +533,10 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
         }
     };
     unsafe {
+        let rc = libc::setgroups(gids.len(), if gids.is_empty() {std::ptr::null()} else {&gids[0] as *const i32 as *const u32});
+        if rc != 0 {
+            panic!("{}", *libc::__errno_location());
+        }
         let rc = libc::setegid(req.gid());
         if rc != 0 {
             panic!("{}", *libc::__errno_location());
@@ -551,7 +555,7 @@ fn restore_ids(ids: Ids) {
         assert_eq!(libc::setegid(ids.gid), 0,"setegid failed");
         assert_eq!(libc::getegid(), ids.gid,"failed to restore egid");
         assert_eq!(
-            libc::setgroups(ids.gids.len(), &ids.gids[0] as *const u32),
+            libc::setgroups(ids.gids.len(), if ids.gids.is_empty() {std::ptr::null()} else {&ids.gids[0] as *const u32}),
             0,
             "setgroups failed"
         );
