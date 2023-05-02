@@ -13,4 +13,5 @@ rust-version = "1.66.1"
 fuser = "0.12.0"
 lazy_static = "1.4.0"
 libc = { default-features = false, version = "0.2.142" }
+maplit = "1.0.2"
 procfs = { default-features = false, version = "0.15.1" }

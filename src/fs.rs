@@ -15,7 +15,7 @@ use procfs::ProcResult;
 const TTL: Duration = Duration::new(0, 0);
 
 pub struct InvFS {
-    root: PathBuf,
+    pub(crate) root: PathBuf,
     paths: Vec<Vec<PathBuf>>,
     dir_fhs: BTreeMap<u64, *mut libc::DIR>,
 }
