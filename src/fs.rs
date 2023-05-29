@@ -507,7 +507,7 @@ struct Ids {
     gids: Vec<u32>,
 }
 
-fn get_groups(pid: i32) -> ProcResult<Vec<i32>> {
+pub fn get_groups(pid: i32) -> ProcResult<Vec<i32>> {
     Ok(procfs::process::Process::new(pid)?.status()?.groups)
 }
 

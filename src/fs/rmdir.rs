@@ -2,6 +2,7 @@ use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
+    invariants::fs::rmdir::{inv_rmdir_after, inv_rmdir_before},
     log_call, log_more, log_res,
 };
 
@@ -17,6 +18,7 @@ impl InvFS {
     ) {
         let callid = log_call!("RMDIR", "parent={},name={:?}", parent, name);
         let cwd = chdirin(&self.root);
+        let inv = inv_rmdir_before(callid, req, parent, name);
         let ids = set_ids(callid, req);
         let p_path = self.paths.get(parent);
         log_more!(callid, "parent={:?}", p_path);
@@ -33,6 +35,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_rmdir_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(()) => {

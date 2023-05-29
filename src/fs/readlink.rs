@@ -21,7 +21,7 @@ impl InvFS {
             if res != -1 {
                 assert_ne!(
                     res,
-                    (libc::PATH_MAX + 1).try_into().unwrap(),
+                    isize::try_from(libc::PATH_MAX + 1).unwrap(),
                     "overflowed readlink"
                 );
                 buf.truncate(res.try_into().unwrap());

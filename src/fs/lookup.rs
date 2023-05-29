@@ -1,6 +1,7 @@
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
+    invariants::fs::lookup::{inv_lookup_after, inv_lookup_before},
     log_call, log_more, log_res,
 };
 
@@ -16,6 +17,7 @@ impl InvFS {
     ) {
         let callid = log_call!("LOOKUP", "parent={},name={:?}", parent, name);
         let cwd = chdirin(&self.root);
+        let inv = inv_lookup_before(callid, req, parent, name);
         let ids = set_ids(callid, req);
         let p_path = self.paths.get(parent);
         log_more!(callid, "parent={:?}", p_path);
@@ -27,6 +29,7 @@ impl InvFS {
         });
         log_res!(callid, "{:#?}", res);
         restore_ids(ids);
+        inv_lookup_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(v) => reply.entry(&TTL, &v, 0),

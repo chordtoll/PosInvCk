@@ -1,5 +1,5 @@
 use fuser::MountOption;
-use posix_invariant_checker::fs::InvFS;
+use posix_invariant_checker::{fs::InvFS, store_prev_contents};
 
 fn main() {
     let base = std::env::args_os().nth(1).unwrap();
@@ -13,4 +13,8 @@ fn main() {
         &[MountOption::AutoUnmount, MountOption::AllowOther],
     )
     .unwrap();
+
+    store_prev_contents();
+
+    println!("Unmounted")
 }

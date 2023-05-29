@@ -13,12 +13,23 @@ impl InodeMapper {
         Self(btreemap! {1 => btreeset![PathBuf::from(".")]})
     }
 
+    pub fn load(v: BTreeMap<u64, BTreeSet<PathBuf>>) -> Self {
+        Self(v)
+    }
+    pub fn store(&self) -> BTreeMap<u64, BTreeSet<PathBuf>> {
+        self.0.clone()
+    }
+
     pub fn get(&self, ino: u64) -> &Path {
         self.0
             .get(&ino)
             .expect("Accessing an inode we haven't seen before")
             .first()
             .unwrap()
+    }
+
+    pub fn get_all(&self, ino: u64) -> Option<&BTreeSet<PathBuf>> {
+        self.0.get(&ino)
     }
 
     pub fn insert(&mut self, ino: u64, child: PathBuf) -> u64 {
@@ -44,10 +55,22 @@ impl InodeMapper {
     }
 
     pub fn rename(&mut self, old: PathBuf, new: PathBuf) {
-        self.0.iter_mut().for_each(|(_, v)| {
+        self.remove(&new);
+        self.0.iter_mut().for_each(|(k, v)| {
             if v.remove(&old) {
                 v.insert(new.clone());
             }
+            *v = v
+                .iter()
+                .map(|x| {
+                    if let Ok(v) = x.strip_prefix(old.clone()) {
+                        println!("{:?} -R> ({}) {:?}", x, k, new.join(v));
+                        new.join(v)
+                    } else {
+                        x.clone()
+                    }
+                })
+                .collect();
         })
     }
 }

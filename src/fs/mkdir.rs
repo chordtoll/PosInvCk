@@ -3,6 +3,7 @@ use std::{ffi::CString, os::unix::prelude::OsStrExt};
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
+    invariants::fs::mkdir::{inv_mkdir_after, inv_mkdir_before},
     log_call, log_more, log_res,
 };
 
@@ -27,6 +28,7 @@ impl InvFS {
             umask
         );
         let cwd = chdirin(&self.root);
+        let inv = inv_mkdir_before(callid, req, parent, name, mode, umask);
         let ids = set_ids(callid, req);
         let p_path = self.paths.get(parent);
         log_more!(callid, "parent={:?}", p_path);
@@ -46,6 +48,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_mkdir_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(v) => reply.entry(&TTL, &v, 0),

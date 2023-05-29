@@ -2,6 +2,7 @@ use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
+    invariants::fs::rename::{inv_rename_after, inv_rename_before},
     log_call, log_more, log_res,
 };
 
@@ -28,6 +29,7 @@ impl InvFS {
             flags
         );
         let cwd = chdirin(&self.root);
+        let inv = inv_rename_before(callid, req, parent, name, newparent, newname, flags);
         let ids = set_ids(callid, req);
         let old_parent = self.paths.get(parent);
         log_more!(callid, "old_parent={:?}", old_parent);
@@ -49,12 +51,11 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_rename_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(()) => {
-                log_more!(callid, "{:?}", self.paths);
                 self.paths.rename(old_child, new_child);
-                log_more!(callid, "{:?}", self.paths);
                 reply.ok()
             }
             Err(v) => reply.error(v),

@@ -2,6 +2,7 @@ use libc::c_void;
 
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
+    invariants::fs::write::{inv_write_after, inv_write_before},
     log_call, log_res,
 };
 
@@ -32,6 +33,17 @@ impl InvFS {
             lock_owner
         );
         let cwd = chdirin(&self.root);
+        let inv = inv_write_before(
+            callid,
+            req,
+            ino,
+            fh,
+            offset,
+            data,
+            write_flags,
+            flags,
+            lock_owner,
+        );
         let ids = set_ids(callid, req);
         let res = unsafe {
             let offs = libc::lseek(fh as i32, offset, libc::SEEK_SET);
@@ -45,6 +57,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_write_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(v) => reply.written(v.try_into().unwrap()),

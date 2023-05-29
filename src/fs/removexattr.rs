@@ -2,6 +2,7 @@ use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
+    invariants::fs::removexattr::{inv_removexattr_after, inv_removexattr_before},
     log_call, log_more, log_res,
 };
 
@@ -17,6 +18,7 @@ impl InvFS {
     ) {
         let callid = log_call!("REMOVEXATTR", "ino={},name={:?}", ino, name);
         let cwd = chdirin(&self.root);
+        let inv = inv_removexattr_before(callid, req, ino, name);
         let ids = set_ids(callid, req);
         let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
@@ -32,6 +34,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_removexattr_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(()) => reply.ok(),

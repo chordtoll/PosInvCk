@@ -1,6 +1,7 @@
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
+    invariants::fs::getattr::{inv_getattr_after, inv_getattr_before},
     log_call, log_more, log_res,
 };
 
@@ -10,6 +11,7 @@ impl InvFS {
     pub fn do_getattr(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
         let callid = log_call!("GETATTR", "ino={}", ino);
         let cwd = chdirin(&self.root);
+        let inv = inv_getattr_before(callid, req, ino);
         let ids = set_ids(callid, req);
         let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
@@ -18,6 +20,7 @@ impl InvFS {
 
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_getattr_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(v) => reply.attr(&TTL, &v),

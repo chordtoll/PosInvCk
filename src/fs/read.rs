@@ -2,7 +2,9 @@ use libc::c_void;
 
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
+    invariants::fs::read::{inv_read_after, inv_read_before},
     log_call, log_res,
+    logwrapper::LogWrapper,
 };
 
 use super::InvFS;
@@ -30,6 +32,7 @@ impl InvFS {
             lock_owner
         );
         let cwd = chdirin(&self.root);
+        let inv = inv_read_before(callid, req, ino, fh, offset, size, flags, lock_owner);
         let ids = set_ids(callid, req);
         let res = unsafe {
             let offs = libc::lseek(fh as i32, offset, libc::SEEK_SET);
@@ -39,8 +42,9 @@ impl InvFS {
             buf.truncate(res.try_into().unwrap());
             Ok(buf)
         };
-        log_res!(callid, "{:?}", res);
+        log_res!(callid, "{}", res.lw());
         restore_ids(ids);
+        inv_read_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(v) => reply.data(&v),

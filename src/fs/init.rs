@@ -1,7 +1,7 @@
 use libc::c_int;
 
 use crate::{
-    invariants::init::{inv_init_after, inv_init_before},
+    invariants::fs::init::{inv_init_after, inv_init_before},
     log_call,
 };
 
@@ -16,7 +16,7 @@ impl InvFS {
         let callid = log_call!("INIT", "config={:?}", config);
         let inv = inv_init_before(callid, self, req, config);
         let res = Ok(());
-        inv_init_after(callid, inv, res);
+        inv_init_after(callid, inv, &res);
         res
     }
 }

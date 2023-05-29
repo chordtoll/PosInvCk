@@ -4,6 +4,7 @@ use libc::c_void;
 
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
+    invariants::fs::setxattr::{inv_setxattr_after, inv_setxattr_before},
     log_call, log_more, log_res,
 };
 
@@ -30,6 +31,7 @@ impl InvFS {
             position
         );
         let cwd = chdirin(&self.root);
+        let inv = inv_setxattr_before(callid, req, ino, name, value, flags, position);
         let ids = set_ids(callid, req);
         let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
@@ -51,6 +53,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_setxattr_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(()) => reply.ok(),

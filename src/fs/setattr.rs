@@ -11,6 +11,7 @@ use libc::timeval;
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
+    invariants::fs::setattr::{inv_setattr_after, inv_setattr_before},
     log_call, log_more, log_res,
 };
 
@@ -37,6 +38,10 @@ impl InvFS {
     ) {
         let callid = log_call!("SETATTR", "ino={}", ino);
         let cwd = chdirin(&self.root);
+        let inv = inv_setattr_before(
+            callid, req, ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime, chgtime,
+            bkuptime, flags,
+        );
         let ids = set_ids(callid, req);
         let path = self.paths.get(ino);
         log_more!(callid, "path={:?}", path);
@@ -183,6 +188,7 @@ impl InvFS {
 
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
+        inv_setattr_after(callid, inv, &res);
         chdirout(cwd);
         match res {
             Ok(v) => reply.attr(&TTL, &v),

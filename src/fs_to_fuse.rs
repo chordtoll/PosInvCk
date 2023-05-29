@@ -35,7 +35,7 @@ impl FsToFuseAttr for std::fs::Metadata {
                 .unwrap(),
             crtime: UNIX_EPOCH,
             kind: self.file_type().to_fuse_kind(),
-            perm: self.permissions().mode().try_into().unwrap(),
+            perm: (self.permissions().mode() & 0o7777).try_into().unwrap(),
             nlink: self.nlink().try_into().unwrap(),
             uid: self.uid(),
             gid: self.gid(),

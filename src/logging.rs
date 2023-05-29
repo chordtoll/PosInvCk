@@ -10,24 +10,24 @@ pub type CallID = u64;
 
 #[macro_export]
 macro_rules! log_call {
-    ($call:literal, $($arg:tt)*) => {{
+    ($call:literal, $($arg:expr),* $(,)?) => {{
         let id = $crate::logging::CALL_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        println!("{}({}): {}",$call,format!($($arg)*),id);
+        println!("{}({}): {}",$call,format!($($arg,)*),id);
         id
     }};
 }
 
 #[macro_export]
 macro_rules! log_more {
-    ($callid: ident, $($arg:tt)*) => {{
-        println!(" {} : {}",$callid,format!($($arg)*));
+    ($callid: ident, $($arg:expr),* $(,)?) => {{
+        println!(" {} : {}",$callid,format!($($arg,)*));
     }};
 }
 
 #[macro_export]
 macro_rules! log_res {
-    ($callid: ident, $($arg:tt)*) => {{
-        println!(" {} => {}",$callid,format!($($arg)*));
+    ($callid: ident, $($arg:expr),* $(,)?) => {{
+        println!(" {} => {}",$callid,format!($($arg,)*));
     }};
 }
 
