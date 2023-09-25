@@ -29,13 +29,17 @@ impl InvFS {
             flags
         );
         let cwd = chdirin(&self.root);
-        let inv = inv_rename_before(callid, req, parent, name, newparent, newname, flags);
-        let ids = set_ids(callid, req);
-        let old_parent = self.paths.get(parent);
+        let mut dl = self.data.lock().unwrap();
+        let inv = inv_rename_before(
+            callid, req, &self.root, parent, name, newparent, newname, flags, &mut dl,
+        );
+        let ids = set_ids(callid, req, None);
+        let ip = &mut dl.INODE_PATHS;
+        let old_parent = ip.get(parent);
         log_more!(callid, "old_parent={:?}", old_parent);
         let old_child = old_parent.join(name);
         log_more!(callid, "old_child={:?}", old_child);
-        let new_parent = self.paths.get(newparent);
+        let new_parent = ip.get(newparent);
         log_more!(callid, "new_parent={:?}", new_parent);
         let new_child = new_parent.join(newname);
         log_more!(callid, "new_child={:?}", new_child);
@@ -51,11 +55,11 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
-        inv_rename_after(callid, inv, &res);
+        inv_rename_after(callid, inv, &res, &mut dl);
         chdirout(cwd);
         match res {
             Ok(()) => {
-                self.paths.rename(old_child, new_child);
+                dl.INODE_PATHS.rename(old_child, new_child);
                 reply.ok()
             }
             Err(v) => reply.error(v),

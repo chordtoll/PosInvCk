@@ -1,4 +1,4 @@
-use std::ffi::OsString;
+use std::{ffi::OsString, path::Path, sync::MutexGuard};
 
 use asserteq_pretty::assert_eq_pretty;
 
@@ -7,6 +7,7 @@ use crate::{
     invariants::{
         common::{common_pre_parent_name, CPPN},
         perm::{check_perm, Access},
+        FSData,
     },
     log_more,
     logging::CallID,
@@ -22,7 +23,7 @@ pub struct LookupArgs {
 #[must_use]
 pub struct LookupInv {
     child_exists: bool,
-    perm: bool,
+    perm: Option<i32>,
     toolong: bool,
     ino: Option<u64>,
     args: LookupArgs,
@@ -31,8 +32,10 @@ pub struct LookupInv {
 pub fn inv_lookup_before(
     _callid: CallID,
     req: &fuser::Request<'_>,
+    base: &Path,
     parent: u64,
     name: &std::ffi::OsStr,
+    fs_data: &mut MutexGuard<'_, FSData>,
 ) -> LookupInv {
     let CPPN {
         child_path,
@@ -40,9 +43,16 @@ pub fn inv_lookup_before(
         child_exists,
         toolong,
         ..
-    } = common_pre_parent_name(parent, name);
+    } = common_pre_parent_name(parent, name, fs_data);
 
-    let perm = check_perm(req.uid(), req.gid(), req.pid(), &child_path, Access::Lookup);
+    let perm = check_perm(
+        req.uid(),
+        req.gid(),
+        req.pid(),
+        &child_path,
+        base,
+        Access::Lookup,
+    );
 
     LookupInv {
         ino,
@@ -55,7 +65,12 @@ pub fn inv_lookup_before(
         },
     }
 }
-pub fn inv_lookup_after(callid: CallID, inv: LookupInv, res: &Result<fuser::FileAttr, i32>) {
+pub fn inv_lookup_after(
+    callid: CallID,
+    inv: LookupInv,
+    res: &Result<fuser::FileAttr, i32>,
+    fs_data: &mut MutexGuard<'_, FSData>,
+) {
     log_more!(callid, "invariant={:?}", inv);
     match res {
         Ok(v) => {
@@ -63,7 +78,10 @@ pub fn inv_lookup_after(callid: CallID, inv: LookupInv, res: &Result<fuser::File
                 !inv.toolong,
                 "Failed to return ENAMETOOLONG on name too long"
             );
-            assert!(inv.perm, "Failed to return EACCES on permission denied");
+            assert!(
+                inv.perm.is_none(),
+                "Failed to return error on permission denied"
+            );
             assert!(
                 inv.child_exists,
                 "Failed to return ENOENT on nonexistant child"
@@ -72,9 +90,8 @@ pub fn inv_lookup_after(callid: CallID, inv: LookupInv, res: &Result<fuser::File
             assert_eq!(v.ino, ino, "Returned inode number does not match");
             #[cfg(feature = "check-dirs")]
             assert_eq!(
-                crate::invariants::DIR_CONTENTS
-                    .lock()
-                    .unwrap()
+                fs_data
+                    .INV_DIR_CONTENTS
                     .get(&inv.args.parent)
                     .expect("Parent does not exist")
                     .get(&inv.args.name)
@@ -83,9 +100,8 @@ pub fn inv_lookup_after(callid: CallID, inv: LookupInv, res: &Result<fuser::File
             );
             #[cfg(feature = "check-meta")]
             assert_eq_pretty!(
-                crate::invariants::INODE_CONTENTS
-                    .lock()
-                    .unwrap()
+                fs_data
+                    .INV_INODE_CONTENTS
                     .get(&ino)
                     .map(|x| x.reset_times()),
                 Some(FileAttr::from(v).reset_times()),
@@ -93,9 +109,15 @@ pub fn inv_lookup_after(callid: CallID, inv: LookupInv, res: &Result<fuser::File
             );
         }
         Err(libc::ENAMETOOLONG) => assert!(inv.toolong, "Returned ENAMETOOLONG on valid name"),
-        Err(libc::EACCES) => assert!(
-            !inv.perm,
-            "Returned EACCESS on path where we have permission"
+        Err(libc::EACCES) => assert_eq!(
+            inv.perm,
+            Some(libc::EACCES),
+            "Returned EACCES on path where we have permission"
+        ),
+        Err(libc::EPERM) => assert_eq!(
+            inv.perm,
+            Some(libc::EPERM),
+            "Returned EPERM on path where we have permission"
         ),
         Err(libc::ENOENT) => assert!(!inv.child_exists, "Returned ENOENT on extant path"),
         Err(e) => panic!("Got unexpected error code {}", e),

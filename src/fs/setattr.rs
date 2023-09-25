@@ -38,30 +38,32 @@ impl InvFS {
     ) {
         let callid = log_call!("SETATTR", "ino={}", ino);
         let cwd = chdirin(&self.root);
+        let mut dl = self.data.lock().unwrap();
         let inv = inv_setattr_before(
-            callid, req, ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime, chgtime,
-            bkuptime, flags,
+            callid, req, &self.root, ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime,
+            chgtime, bkuptime, flags, &mut dl,
         );
-        let ids = set_ids(callid, req);
-        let path = self.paths.get(ino);
+        let ids = set_ids(callid, req, None);
+        let ip = &dl.INODE_PATHS;
+        let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = (|| unsafe {
             let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();
             if let Some(v) = mode {
-                log_more!(callid, "mode={}", v);
+                log_more!(callid, "mode={:o} ({})", v, v);
                 if libc::chmod(tgt.as_ptr(), v) != 0 {
                     return Err(*libc::__errno_location());
                 }
             }
             if let Some(v) = uid {
                 log_more!(callid, "uid={}", v);
-                if libc::chown(tgt.as_ptr(), v, u32::MAX) != 0 {
+                if libc::lchown(tgt.as_ptr(), v, u32::MAX) != 0 {
                     return Err(*libc::__errno_location());
                 }
             }
             if let Some(v) = gid {
                 log_more!(callid, "gid={}", v);
-                if libc::chown(tgt.as_ptr(), u32::MAX, v) != 0 {
+                if libc::lchown(tgt.as_ptr(), u32::MAX, v) != 0 {
                     return Err(*libc::__errno_location());
                 }
             }
@@ -187,8 +189,9 @@ impl InvFS {
         })();
 
         log_res!(callid, "{:?}", res);
+
         restore_ids(ids);
-        inv_setattr_after(callid, inv, &res);
+        inv_setattr_after(callid, inv, &res, &mut dl);
         chdirout(cwd);
         match res {
             Ok(v) => reply.attr(&TTL, &v),

@@ -31,9 +31,13 @@ impl InvFS {
             position
         );
         let cwd = chdirin(&self.root);
-        let inv = inv_setxattr_before(callid, req, ino, name, value, flags, position);
-        let ids = set_ids(callid, req);
-        let path = self.paths.get(ino);
+        let mut dl = self.data.lock().unwrap();
+        let inv = inv_setxattr_before(
+            callid, req, &self.root, ino, name, value, flags, position, &mut dl,
+        );
+        let ids = set_ids(callid, req, None);
+        let ip = &dl.INODE_PATHS;
+        let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
             let nm = CString::new(name.as_bytes()).unwrap();

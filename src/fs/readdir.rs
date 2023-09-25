@@ -23,7 +23,7 @@ impl InvFS {
     ) {
         let callid = log_call!("READDIR", "ino={},fh={:x},offset={:x}", ino, fh, offset);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req, None);
         let dir = self.dir_fhs.get(&fh).unwrap();
         let res = unsafe {
             libc::seekdir(*dir, offset);
@@ -36,7 +36,7 @@ impl InvFS {
                     Err(*libc::__errno_location())
                 }
             } else {
-                let name = core::ffi::CStr::from_ptr(&(*res).d_name as *const i8);
+                let name = std::ffi::CStr::from_ptr(&(*res).d_name as *const i8);
                 let name = OsStr::from_bytes(name.to_bytes());
                 let kind = match (*res).d_type {
                     libc::DT_REG => FileType::RegularFile,

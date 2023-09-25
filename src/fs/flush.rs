@@ -16,7 +16,7 @@ impl InvFS {
     ) {
         let callid = log_call!("FLUSH", "ino={},fh={},lock_owner={}", ino, fh, lock_owner);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req, None);
         let res = unsafe {
             let res = libc::fsync(fh.try_into().unwrap());
             if res == 0 {

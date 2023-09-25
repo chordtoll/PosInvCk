@@ -4,19 +4,21 @@ use std::{
     mem::MaybeUninit,
     os::unix::prelude::OsStrExt,
     path::{Path, PathBuf},
+    sync::Mutex,
     time::Duration,
 };
 
-use crate::{inode_mapper::InodeMapper, log_more, logging::CallID};
+use crate::{invariants::FSData, log_more, logging::CallID};
 use fuser::Filesystem;
 use libc::c_int;
 use procfs::ProcResult;
 
 const TTL: Duration = Duration::new(0, 0);
 
+#[derive(Default)]
 pub struct InvFS {
     pub(crate) root: PathBuf,
-    paths: InodeMapper,
+    data: Mutex<FSData>,
     dir_fhs: BTreeMap<u64, *mut libc::DIR>,
 }
 
@@ -24,8 +26,7 @@ impl InvFS {
     pub fn new(root: PathBuf) -> Self {
         Self {
             root,
-            paths: InodeMapper::new(),
-            dir_fhs: BTreeMap::new(),
+            ..Default::default()
         }
     }
 }
@@ -505,10 +506,16 @@ struct Ids {
     uid: u32,
     gid: u32,
     gids: Vec<u32>,
+    umask: Option<u32>,
 }
 
-pub fn get_groups(pid: i32) -> ProcResult<Vec<i32>> {
-    Ok(procfs::process::Process::new(pid)?.status()?.groups)
+pub fn get_groups(pid: i32) -> ProcResult<Vec<u32>> {
+    Ok(procfs::process::Process::new(pid)?
+        .status()?
+        .groups
+        .iter()
+        .map(|x| *x as u32)
+        .collect())
 }
 
 pub fn chdirin(root: &Path) -> PathBuf {
@@ -521,7 +528,7 @@ pub fn chdirout(prev: PathBuf) {
     std::env::set_current_dir(prev).unwrap();
 }
 
-fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
+fn set_ids(callid: CallID, req: &fuser::Request<'_>, umask: Option<u32>) -> Ids {
     let gids = get_groups(req.pid().try_into().unwrap()).unwrap_or(vec![]);
     log_more!(
         callid,
@@ -534,12 +541,14 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
         let uid = libc::geteuid();
         let gid = libc::getegid();
         let mut gids = [libc::gid_t::MIN; 256];
-        let ngroups = libc::getgroups(256, gids.as_mut_ptr() as *mut u32);
+        let ngroups = libc::getgroups(256, gids.as_mut_ptr());
         assert_ne!(ngroups, -1, "getgroups failed");
+        let umask_orig = umask.map(|umask| libc::umask(umask));
         Ids {
             uid,
             gid,
             gids: Vec::from(&gids[..ngroups.try_into().unwrap()]),
+            umask: umask_orig,
         }
     };
     unsafe {
@@ -548,7 +557,7 @@ fn set_ids(callid: CallID, req: &fuser::Request<'_>) -> Ids {
             if gids.is_empty() {
                 std::ptr::null()
             } else {
-                &gids[0] as *const i32 as *const u32
+                &gids[0]
             },
         );
         if rc != 0 {
@@ -583,6 +592,9 @@ fn restore_ids(ids: Ids) {
             0,
             "setgroups failed"
         );
+        if let Some(umask) = ids.umask {
+            libc::umask(umask);
+        }
     }
 }
 

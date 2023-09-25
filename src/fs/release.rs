@@ -26,7 +26,7 @@ impl InvFS {
             flush
         );
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req, None);
         let res = unsafe {
             let res = libc::close(fh.try_into().unwrap());
             if res == 0 {

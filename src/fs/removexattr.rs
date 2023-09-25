@@ -18,9 +18,11 @@ impl InvFS {
     ) {
         let callid = log_call!("REMOVEXATTR", "ino={},name={:?}", ino, name);
         let cwd = chdirin(&self.root);
-        let inv = inv_removexattr_before(callid, req, ino, name);
-        let ids = set_ids(callid, req);
-        let path = self.paths.get(ino);
+        let mut dl = self.data.lock().unwrap();
+        let inv = inv_removexattr_before(callid, req, &self.root, ino, name, &mut dl);
+        let ids = set_ids(callid, req, None);
+        let ip = &dl.INODE_PATHS;
+        let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
             let nm = CString::new(name.as_bytes()).unwrap();
@@ -33,6 +35,7 @@ impl InvFS {
             }
         };
         log_res!(callid, "{:?}", res);
+
         restore_ids(ids);
         inv_removexattr_after(callid, inv, &res);
         chdirout(cwd);

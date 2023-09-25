@@ -16,7 +16,7 @@ impl InvFS {
     ) {
         let callid = log_call!("FSYNC", "ino={},fh={},datasync={}", ino, fh, datasync);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req, None);
         let res = unsafe {
             let res = if datasync {
                 libc::fdatasync(fh.try_into().unwrap())

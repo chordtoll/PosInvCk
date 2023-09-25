@@ -1,29 +1,31 @@
-use std::{collections::BTreeMap, ffi::OsString, sync::Mutex};
-
-use lazy_static::lazy_static;
+use std::{collections::BTreeMap, ffi::OsString};
 
 use crate::{file_attr::FileAttr, inode_mapper::InodeMapper};
 
-lazy_static! {
-    pub static ref INODE_PATHS: Mutex<InodeMapper> = Mutex::new(InodeMapper::new());
+#[derive(Default)]
+#[allow(non_snake_case)]
+pub struct FSData {
+    pub INODE_PATHS: InodeMapper,
+
+    pub INV_INODE_PATHS: InodeMapper,
+
+    #[cfg(feature = "check-meta")]
+    pub INV_INODE_CONTENTS: BTreeMap<u64, FileAttr>,
+
+    #[cfg(feature = "check-dirs")]
+    pub INV_DIR_CONTENTS: BTreeMap<u64, BTreeMap<OsString, u64>>,
+
+    #[cfg(feature = "check-data")]
+    pub INV_FILE_CONTENTS: BTreeMap<u64, Vec<u8>>,
+
+    #[cfg(feature = "check-xattr")]
+    pub INV_XATTR_CONTENTS: BTreeMap<u64, BTreeMap<OsString, Vec<u8>>>,
 }
-#[cfg(feature = "check-meta")]
-lazy_static! {
-    pub static ref INODE_CONTENTS: Mutex<BTreeMap<u64, FileAttr>> = Mutex::new(BTreeMap::new());
-}
-#[cfg(feature = "check-dirs")]
-lazy_static! {
-    pub static ref DIR_CONTENTS: Mutex<BTreeMap<u64, BTreeMap<OsString, u64>>> =
-        Mutex::new(BTreeMap::new());
-}
-#[cfg(feature = "check-data")]
-lazy_static! {
-    pub static ref FILE_CONTENTS: Mutex<BTreeMap<u64, Vec<u8>>> = Mutex::new(BTreeMap::new());
-}
-#[cfg(feature = "check-xattr")]
-lazy_static! {
-    pub static ref XATTR_CONTENTS: Mutex<BTreeMap<u64, BTreeMap<OsString, Vec<u8>>>> =
-        Mutex::new(BTreeMap::new());
+
+impl FSData {
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 pub mod common;

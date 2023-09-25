@@ -19,8 +19,10 @@ impl InvFS {
     ) {
         let callid = log_call!("GETXATTR", "ino={},name={:?},size={:x}", ino, name, size);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req);
-        let path = self.paths.get(ino);
+        let ids = set_ids(callid, req, None);
+        let dl = self.data.lock().unwrap();
+        let ip = &dl.INODE_PATHS;
+        let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
             let nm = CString::new(name.as_bytes()).unwrap();

@@ -35,7 +35,7 @@ impl FileAttr {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub enum FileType {
     NamedPipe,
     CharDevice,
@@ -58,6 +58,9 @@ impl From<u32> for FileType {
             libc::S_IFDIR => FileType::Directory,
             libc::S_IFREG => FileType::RegularFile,
             libc::S_IFLNK => FileType::Symlink,
+            libc::S_IFBLK => FileType::BlockDevice,
+            libc::S_IFCHR => FileType::CharDevice,
+            libc::S_IFIFO => FileType::NamedPipe,
             v => todo!("Unknown type {:o}", v),
         }
     }

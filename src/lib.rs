@@ -10,6 +10,7 @@ use std::{
 };
 
 use inode_mapper::InodeMapper;
+use invariants::FSData;
 use stfu8::{decode_u8, encode_u8};
 
 pub mod file_attr;
@@ -20,18 +21,16 @@ pub mod invariants;
 pub mod logging;
 pub mod logwrapper;
 
-pub fn load_prev_contents() -> bool {
+pub fn load_prev_contents(fs_data: &mut FSData) -> bool {
     let rfr = std::fs::remove_file("fs.contents");
     if rfr.is_ok() {
-        
         println!("path");
-        *invariants::INODE_PATHS.lock().unwrap() = InodeMapper::load(
-            ron::from_str(&std::fs::read_to_string("fs.path").unwrap()).unwrap(),
-        );
+        fs_data.INV_INODE_PATHS =
+            InodeMapper::load(ron::from_str(&std::fs::read_to_string("fs.path").unwrap()).unwrap());
         #[cfg(feature = "check-meta")]
         {
             println!("meta");
-            *invariants::INODE_CONTENTS.lock().unwrap() =
+            fs_data.INV_INODE_CONTENTS =
                 ron::from_str(&std::fs::read_to_string("fs.meta").unwrap()).unwrap();
         }
         #[cfg(feature = "check-dirs")]
@@ -39,7 +38,7 @@ pub fn load_prev_contents() -> bool {
             println!("dirs");
             let dc: BTreeMap<u64, BTreeMap<String, u64>> =
                 ron::from_str(&std::fs::read_to_string("fs.dirs").unwrap()).unwrap();
-            *invariants::DIR_CONTENTS.lock().unwrap() = dc
+            fs_data.INV_DIR_CONTENTS = dc
                 .iter()
                 .map(|(k, v)| {
                     (
@@ -57,7 +56,7 @@ pub fn load_prev_contents() -> bool {
             let data = std::fs::File::open("fs.data").unwrap();
             let fc: BTreeMap<u64, (u64, usize)> =
                 ron::from_str(&std::fs::read_to_string("fs.data.index").unwrap()).unwrap();
-            *invariants::FILE_CONTENTS.lock().unwrap() = fc
+            fs_data.INV_FILE_CONTENTS = fc
                 .iter()
                 .map(|(k, v)| {
                     let mut buf = vec![0; v.1];
@@ -69,7 +68,7 @@ pub fn load_prev_contents() -> bool {
         #[cfg(feature = "check-xattr")]
         {
             println!("xattr");
-            *invariants::XATTR_CONTENTS.lock().unwrap() =
+            *fs_data.XATTR_CONTENTS.lock().unwrap() =
                 ron::from_str(&std::fs::read_to_string("fs.xattr").unwrap()).unwrap();
         }
         true
@@ -79,13 +78,13 @@ pub fn load_prev_contents() -> bool {
     }
 }
 
-pub fn store_prev_contents() {
+pub fn store_prev_contents(fs_data: FSData) {
     let pc = ron::ser::PrettyConfig::default();
 
     println!("path");
     ron::ser::to_writer_pretty(
         File::create("fs.path").unwrap(),
-        &invariants::INODE_PATHS.lock().unwrap().store(),
+        &fs_data.INV_INODE_PATHS.store(),
         pc.clone(),
     )
     .unwrap();
@@ -95,7 +94,7 @@ pub fn store_prev_contents() {
         println!("meta");
         ron::ser::to_writer_pretty(
             File::create("fs.meta").unwrap(),
-            &*invariants::INODE_CONTENTS.lock().unwrap(),
+            &fs_data.INV_INODE_CONTENTS,
             pc.clone(),
         )
         .unwrap();
@@ -103,9 +102,8 @@ pub fn store_prev_contents() {
     #[cfg(feature = "check-dirs")]
     {
         println!("dirs");
-        let dr: BTreeMap<u64, BTreeMap<String, u64>> = invariants::DIR_CONTENTS
-            .lock()
-            .unwrap()
+        let dr: BTreeMap<u64, BTreeMap<String, u64>> = fs_data
+            .INV_DIR_CONTENTS
             .iter()
             .map(|(k, v)| {
                 (
@@ -122,9 +120,8 @@ pub fn store_prev_contents() {
     {
         println!("data");
         let mut data = std::fs::File::create("fs.data").unwrap();
-        let fr: BTreeMap<u64, (u64, usize)> = invariants::FILE_CONTENTS
-            .lock()
-            .unwrap()
+        let fr: BTreeMap<u64, (u64, usize)> = fs_data
+            .INV_FILE_CONTENTS
             .iter()
             .map(|(k, v)| {
                 let idx = data.stream_position().unwrap();
@@ -139,7 +136,7 @@ pub fn store_prev_contents() {
         println!("xattr");
         ron::ser::to_writer_pretty(
             File::create("fs.xattr").unwrap(),
-            &*invariants::XATTR_CONTENTS.lock().unwrap(),
+            &*fs_data.XATTR_CONTENTS.lock().unwrap(),
             pc,
         )
         .unwrap();

@@ -18,9 +18,11 @@ impl InvFS {
     ) {
         let callid = log_call!("UNLINK", "parent={},name={:?}", parent, name);
         let cwd = chdirin(&self.root);
-        let inv = inv_unlink_before(callid, req, parent, name);
-        let ids = set_ids(callid, req);
-        let p_path = self.paths.get(parent);
+        let mut dl = self.data.lock().unwrap();
+        let inv = inv_unlink_before(callid, req, &self.root, parent, name, &mut dl);
+        let ids = set_ids(callid, req, None);
+        let ip = &mut dl.INODE_PATHS;
+        let p_path = ip.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
@@ -35,11 +37,11 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
-        inv_unlink_after(callid, inv, &res);
+        inv_unlink_after(callid, inv, &res, &mut dl);
         chdirout(cwd);
         match res {
             Ok(()) => {
-                self.paths.remove(&child);
+                dl.INODE_PATHS.remove(&child);
                 reply.ok()
             }
             Err(v) => reply.error(v),

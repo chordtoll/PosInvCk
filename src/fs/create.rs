@@ -22,7 +22,7 @@ impl InvFS {
     ) {
         let callid = log_call!(
             "CREATE",
-            "parent={},name={:?},mode={:x},umask={:x},flags={:x}",
+            "parent={},name={:?},mode={:o},umask={:o},flags={:o}",
             parent,
             name,
             mode,
@@ -30,9 +30,13 @@ impl InvFS {
             flags
         );
         let cwd = chdirin(&self.root);
-        let inv = inv_create_before(callid, req, parent, name, mode, umask, flags);
-        let ids = set_ids(callid, req);
-        let p_path = self.paths.get(parent);
+        let mut dl = self.data.lock().unwrap();
+        let inv = inv_create_before(
+            callid, req, &self.root, parent, name, mode, umask, flags, &mut dl,
+        );
+        let ids = set_ids(callid, req, Some(umask));
+        let ip = &mut dl.INODE_PATHS;
+        let p_path = ip.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
@@ -41,7 +45,7 @@ impl InvFS {
             let res = libc::open(tgt.as_ptr(), flags, mode);
             if res != -1 {
                 stat_path(&child).map(|x| {
-                    let ino = self.paths.insert(x.st_ino, child);
+                    let ino = ip.insert(x.st_ino, child);
                     (x.to_fuse_attr(ino), res)
                 })
             } else {
@@ -50,7 +54,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
-        inv_create_after(callid, inv, &res);
+        inv_create_after(callid, inv, &res, &mut dl);
         chdirout(cwd);
         match res {
             Ok((attr, fh)) => reply.created(&TTL, &attr, 0, fh.try_into().unwrap(), 0),

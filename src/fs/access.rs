@@ -17,8 +17,10 @@ impl InvFS {
     ) {
         let callid = log_call!("ACCESS", "ino={},mask={:x}", ino, mask);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req);
-        let path = self.paths.get(ino);
+        let ids = set_ids(callid, req, None);
+        let dl = self.data.lock().unwrap();
+        let ip = &dl.INODE_PATHS;
+        let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
             let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();

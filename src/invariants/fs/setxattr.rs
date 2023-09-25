@@ -1,7 +1,10 @@
+use std::{path::Path, sync::MutexGuard};
+
 use crate::{
     invariants::{
         common::{common_pre_ino, CPI},
         perm::{check_perm, Access},
+        FSData,
     },
     log_more,
     logging::CallID,
@@ -14,15 +17,24 @@ pub struct SetxattrInv {}
 pub fn inv_setxattr_before(
     callid: CallID,
     req: &fuser::Request<'_>,
+    base: &Path,
     ino: u64,
     _name: &std::ffi::OsStr,
     _value: &[u8],
     _flags: i32,
     _position: u32,
+    fs_data: &mut MutexGuard<'_, FSData>,
 ) -> SetxattrInv {
-    let CPI { inode_path, .. } = common_pre_ino(callid, ino);
+    let CPI { inode_path, .. } = common_pre_ino(callid, ino, fs_data);
 
-    let _perm = check_perm(req.uid(), req.gid(), req.pid(), &inode_path, Access::Lookup);
+    let _perm = check_perm(
+        req.uid(),
+        req.gid(),
+        req.pid(),
+        &inode_path,
+        base,
+        Access::Lookup,
+    );
 
     SetxattrInv {}
 }

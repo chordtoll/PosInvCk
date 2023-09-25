@@ -17,19 +17,21 @@ impl InvFS {
     ) {
         let callid = log_call!("LOOKUP", "parent={},name={:?}", parent, name);
         let cwd = chdirin(&self.root);
-        let inv = inv_lookup_before(callid, req, parent, name);
-        let ids = set_ids(callid, req);
-        let p_path = self.paths.get(parent);
+        let mut dl = self.data.lock().unwrap();
+        let inv = inv_lookup_before(callid, req, &self.root, parent, name, &mut dl);
+        let ids = set_ids(callid, req, None);
+        let ip = &mut dl.INODE_PATHS;
+        let p_path = ip.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
         let res = unsafe { stat_path(&child) }.map(|v| {
-            let ino = self.paths.insert(v.st_ino, child);
+            let ino = ip.insert(v.st_ino, child);
             v.to_fuse_attr(ino)
         });
         log_res!(callid, "{:#?}", res);
         restore_ids(ids);
-        inv_lookup_after(callid, inv, &res);
+        inv_lookup_after(callid, inv, &res, &mut dl);
         chdirout(cwd);
         match res {
             Ok(v) => reply.entry(&TTL, &v, 0),

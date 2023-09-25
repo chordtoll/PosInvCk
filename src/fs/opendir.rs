@@ -17,8 +17,10 @@ impl InvFS {
     ) {
         let callid = log_call!("OPENDIR", "ino={},flags={:x}", ino, flags);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req);
-        let path = self.paths.get(ino);
+        let ids = set_ids(callid, req, None);
+        let dl = self.data.lock().unwrap();
+        let ip = &dl.INODE_PATHS;
+        let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);
         let res = unsafe {
             let tgt = CString::new(path.as_os_str().as_bytes()).unwrap();
@@ -34,7 +36,7 @@ impl InvFS {
         chdirout(cwd);
         match res {
             Ok(v) => {
-                let fh = self.dir_fhs.last_entry().map(|x| *x.key()).unwrap_or(0) + 1;
+                let fh = self.dir_fhs.iter().last().map(|(x, _)| *x).unwrap_or(0) + 1;
                 self.dir_fhs.insert(fh, v);
                 reply.opened(fh, 0)
             }

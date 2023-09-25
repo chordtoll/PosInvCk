@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, ffi::OsString, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    ffi::OsString,
+    path::{Path, PathBuf},
+    sync::MutexGuard,
+};
 
 use asserteq_pretty::assert_eq_pretty;
 
@@ -7,7 +12,7 @@ use crate::{
     invariants::{
         common::{common_pre_parent_name, CPPN},
         perm::{check_perm, Access},
-        INODE_PATHS,
+        FSData,
     },
     log_more,
     logging::CallID,
@@ -21,7 +26,7 @@ pub struct MkdirInv {
     parent: u64,
     name: OsString,
     parent_exists: bool,
-    perm: bool,
+    perm: Option<i32>,
     toolong: bool,
     child_path: PathBuf,
     mode: u32,
@@ -30,19 +35,28 @@ pub struct MkdirInv {
 pub fn inv_mkdir_before(
     _callid: CallID,
     req: &fuser::Request<'_>,
+    base: &Path,
     parent: u64,
     name: &std::ffi::OsStr,
     mode: u32,
     _umask: u32,
+    fs_data: &mut MutexGuard<'_, FSData>,
 ) -> MkdirInv {
     let CPPN {
         child_path,
         parent_exists,
         toolong,
         ..
-    } = common_pre_parent_name(parent, name);
+    } = common_pre_parent_name(parent, name, fs_data);
 
-    let perm = check_perm(req.uid(), req.gid(), req.pid(), &child_path, Access::Create);
+    let perm = check_perm(
+        req.uid(),
+        req.gid(),
+        req.pid(),
+        &child_path,
+        base,
+        Access::Create,
+    );
 
     MkdirInv {
         uid: req.uid(),
@@ -56,7 +70,12 @@ pub fn inv_mkdir_before(
         mode,
     }
 }
-pub fn inv_mkdir_after(callid: CallID, inv: MkdirInv, res: &Result<fuser::FileAttr, i32>) {
+pub fn inv_mkdir_after(
+    callid: CallID,
+    inv: MkdirInv,
+    res: &Result<fuser::FileAttr, i32>,
+    fs_data: &mut MutexGuard<'_, FSData>,
+) {
     log_more!(callid, "invariant={:?}", inv);
     match res {
         Ok(v) => {
@@ -64,7 +83,10 @@ pub fn inv_mkdir_after(callid: CallID, inv: MkdirInv, res: &Result<fuser::FileAt
                 !inv.toolong,
                 "Failed to return ENAMETOOLONG on name too long"
             );
-            assert!(inv.perm, "Failed to return EACCES on permission denied");
+            assert!(
+                inv.perm.is_none(),
+                "Failed to return error on permission denied"
+            );
             assert!(
                 inv.parent_exists,
                 "Failed to return ENOENT on nonexistant parent"
@@ -89,40 +111,44 @@ pub fn inv_mkdir_after(callid: CallID, inv: MkdirInv, res: &Result<fuser::FileAt
             assert_eq_pretty!(FileAttr::from(v), fa);
             #[cfg(feature = "check-meta")]
             {
-                let mut ic = crate::invariants::INODE_CONTENTS.lock().unwrap();
-                ic.insert(v.ino, fa);
+                fs_data.INV_INODE_CONTENTS.insert(v.ino, fa);
             }
             #[cfg(feature = "check-dirs")]
             {
-                let mut fc = crate::invariants::DIR_CONTENTS.lock().unwrap();
-                fc.insert(v.ino, BTreeMap::new());
+                fs_data.INV_DIR_CONTENTS.insert(v.ino, BTreeMap::new());
             }
             #[cfg(feature = "check-xattr")]
             {
-                let mut xc = crate::invariants::XATTR_CONTENTS.lock().unwrap();
+                let xc = &mut fs_data.INV_XATTR_CONTENTS;
                 xc.insert(v.ino, BTreeMap::new());
             }
             #[cfg(feature = "check-dirs")]
             {
-                let mut dc = crate::invariants::DIR_CONTENTS.lock().unwrap();
+                let dc = &mut fs_data.INV_DIR_CONTENTS;
                 dc.get_mut(&inv.parent)
                     .expect("Parent does not exist")
                     .insert(inv.name, v.ino);
             }
             #[cfg(feature = "check-meta")]
             {
-                let mut dc = crate::invariants::INODE_CONTENTS.lock().unwrap();
+                let dc = &mut fs_data.INV_INODE_CONTENTS;
                 dc.get_mut(&inv.parent)
                     .expect("Parent does not exist")
                     .nlink += 1;
             }
-            let mut ip = INODE_PATHS.lock().unwrap();
-            ip.insert(v.ino, inv.child_path);
+            println!("III {}->{:?}", v.ino, inv.child_path);
+            fs_data.INV_INODE_PATHS.insert(v.ino, inv.child_path);
         }
         Err(libc::ENAMETOOLONG) => assert!(inv.toolong, "Returned ENAMETOOLONG on valid name"),
-        Err(libc::EACCES) => assert!(
-            !inv.perm,
-            "Returned EACCESS on path where we have permission"
+        Err(libc::EACCES) => assert_eq!(
+            inv.perm,
+            Some(libc::EACCES),
+            "Returned EACCES on path where we have permission"
+        ),
+        Err(libc::EPERM) => assert_eq!(
+            inv.perm,
+            Some(libc::EPERM),
+            "Returned EPERM on path where we have permission"
         ),
         Err(libc::ENOENT) => assert!(!inv.parent_exists, "Returned ENOENT on extant parent"),
         Err(e) => panic!("Got unexpected error code {}", e),

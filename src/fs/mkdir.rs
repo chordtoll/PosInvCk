@@ -21,16 +21,18 @@ impl InvFS {
     ) {
         let callid = log_call!(
             "MKDIR",
-            "parent={},name={:?},mode={:x},umask={:x}",
+            "parent={},name={:?},mode={:o},umask={:o}",
             parent,
             name,
             mode,
             umask
         );
         let cwd = chdirin(&self.root);
-        let inv = inv_mkdir_before(callid, req, parent, name, mode, umask);
-        let ids = set_ids(callid, req);
-        let p_path = self.paths.get(parent);
+        let mut dl = self.data.lock().unwrap();
+        let inv = inv_mkdir_before(callid, req, &self.root, parent, name, mode, umask, &mut dl);
+        let ids = set_ids(callid, req, Some(umask));
+        let ip = &mut dl.INODE_PATHS;
+        let p_path = ip.get(parent);
         log_more!(callid, "parent={:?}", p_path);
         let child = p_path.join(name);
         log_more!(callid, "child={:?}", child);
@@ -39,7 +41,7 @@ impl InvFS {
             let res = libc::mkdir(tgt.as_ptr(), mode);
             if res == 0 {
                 stat_path(&child).map(|x| {
-                    let ino = self.paths.insert(x.st_ino, child);
+                    let ino = ip.insert(x.st_ino, child);
                     x.to_fuse_attr(ino)
                 })
             } else {
@@ -48,7 +50,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
-        inv_mkdir_after(callid, inv, &res);
+        inv_mkdir_after(callid, inv, &res, &mut dl);
         chdirout(cwd);
         match res {
             Ok(v) => reply.entry(&TTL, &v, 0),

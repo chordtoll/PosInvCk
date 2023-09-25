@@ -5,12 +5,12 @@ use std::{
 
 use maplit::{btreemap, btreeset};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct InodeMapper(BTreeMap<u64, BTreeSet<PathBuf>>);
 
 impl InodeMapper {
     pub fn new() -> Self {
-        Self(btreemap! {1 => btreeset![PathBuf::from(".")]})
+        Self(btreemap! {})
     }
 
     pub fn load(v: BTreeMap<u64, BTreeSet<PathBuf>>) -> Self {
@@ -23,8 +23,9 @@ impl InodeMapper {
     pub fn get(&self, ino: u64) -> &Path {
         self.0
             .get(&ino)
-            .expect("Accessing an inode we haven't seen before")
-            .first()
+            .unwrap_or_else(|| panic!("Accessing an inode we haven't seen before: {}", ino))
+            .iter()
+            .next()
             .unwrap()
     }
 

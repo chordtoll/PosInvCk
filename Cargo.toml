@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "A FUSE shim to ensure the underlying filesystem is behaving according to the POSIX spec."
 repository = "https://github.com/chordtoll/PosInvCk"
-rust-version = "1.66.1"
+rust-version = "1.60.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -30,9 +30,9 @@ xattr = "1.0.0"
 [features]
 default = ["check-meta", "check-dirs", "check-data"]
 check-meta = ["check-contents"]
-check-dirs = ["check-contents","check-meta"]
-check-data = ["check-contents","check-meta"]
-check-xattr = ["check-contents","check-meta"]
+check-dirs = ["check-contents", "check-meta"]
+check-data = ["check-contents", "check-meta"]
+check-xattr = ["check-contents", "check-meta"]
 check-contents = ["walkdir"]
 
 [workspace]

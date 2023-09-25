@@ -1,4 +1,9 @@
-use std::{ffi::OsString, os::unix::prelude::OsStrExt, path::PathBuf};
+use std::{
+    ffi::OsString,
+    os::unix::prelude::OsStrExt,
+    path::{Path, PathBuf},
+    sync::MutexGuard,
+};
 
 use asserteq_pretty::assert_eq_pretty;
 
@@ -7,7 +12,7 @@ use crate::{
     invariants::{
         common::{common_pre_parent_name, CPPN},
         perm::{check_perm, Access},
-        INODE_PATHS,
+        FSData,
     },
     log_more,
     logging::CallID,
@@ -21,7 +26,7 @@ pub struct SymlinkInv {
     parent: u64,
     name: OsString,
     parent_exists: bool,
-    perm: bool,
+    perm: Option<i32>,
     toolong: bool,
     child_path: PathBuf,
     link: PathBuf,
@@ -29,18 +34,27 @@ pub struct SymlinkInv {
 pub fn inv_symlink_before(
     _callid: CallID,
     req: &fuser::Request<'_>,
+    base: &Path,
     parent: u64,
     name: &std::ffi::OsStr,
     link: &std::path::Path,
+    fs_data: &mut MutexGuard<'_, FSData>,
 ) -> SymlinkInv {
     let CPPN {
         child_path,
         parent_exists,
         toolong,
         ..
-    } = common_pre_parent_name(parent, name);
+    } = common_pre_parent_name(parent, name, fs_data);
 
-    let perm = check_perm(req.uid(), req.gid(), req.pid(), &child_path, Access::Lookup);
+    let perm = check_perm(
+        req.uid(),
+        req.gid(),
+        req.pid(),
+        &child_path,
+        base,
+        Access::Create,
+    );
 
     SymlinkInv {
         uid: req.uid(),
@@ -54,7 +68,12 @@ pub fn inv_symlink_before(
         link: link.to_path_buf(),
     }
 }
-pub fn inv_symlink_after(callid: CallID, inv: SymlinkInv, res: &Result<fuser::FileAttr, i32>) {
+pub fn inv_symlink_after(
+    callid: CallID,
+    inv: SymlinkInv,
+    res: &Result<fuser::FileAttr, i32>,
+    fs_data: &mut MutexGuard<'_, FSData>,
+) {
     log_more!(callid, "invariant={:?}", inv);
     match res {
         Ok(v) => {
@@ -62,7 +81,10 @@ pub fn inv_symlink_after(callid: CallID, inv: SymlinkInv, res: &Result<fuser::Fi
                 !inv.toolong,
                 "Failed to return ENAMETOOLONG on name too long"
             );
-            assert!(inv.perm, "Failed to return EACCES on permission denied");
+            assert!(
+                inv.perm.is_none(),
+                "Failed to return error on permission denied"
+            );
             assert!(
                 inv.parent_exists,
                 "Failed to return ENOENT on nonexistant parent"
@@ -87,33 +109,38 @@ pub fn inv_symlink_after(callid: CallID, inv: SymlinkInv, res: &Result<fuser::Fi
             assert_eq_pretty!(FileAttr::from(v), fa);
             #[cfg(feature = "check-meta")]
             {
-                let mut ic = crate::invariants::INODE_CONTENTS.lock().unwrap();
+                let ic = &mut fs_data.INV_INODE_CONTENTS;
                 ic.insert(v.ino, fa);
             }
             #[cfg(feature = "check-data")]
             {
-                let mut fc = crate::invariants::FILE_CONTENTS.lock().unwrap();
+                let fc = &mut fs_data.INV_FILE_CONTENTS;
                 fc.insert(v.ino, inv.link.as_os_str().as_bytes().to_vec());
             }
             #[cfg(feature = "check-xattr")]
             {
-                let mut xc = crate::invariants::XATTR_CONTENTS.lock().unwrap();
+                let xc = &mut fs_data.INV_XATTR_CONTENTS;
                 xc.insert(v.ino, BTreeMap::new());
             }
             #[cfg(feature = "check-dirs")]
             {
-                let mut dc = crate::invariants::DIR_CONTENTS.lock().unwrap();
+                let dc = &mut fs_data.INV_DIR_CONTENTS;
                 dc.get_mut(&inv.parent)
                     .expect("Parent does not exist")
                     .insert(inv.name, v.ino);
             }
-            let mut ip = INODE_PATHS.lock().unwrap();
-            ip.insert(v.ino, inv.child_path);
+            fs_data.INV_INODE_PATHS.insert(v.ino, inv.child_path);
         }
         Err(libc::ENAMETOOLONG) => assert!(inv.toolong, "Returned ENAMETOOLONG on valid name"),
-        Err(libc::EACCES) => assert!(
-            !inv.perm,
-            "Returned EACCESS on path where we have permission"
+        Err(libc::EACCES) => assert_eq!(
+            inv.perm,
+            Some(libc::EACCES),
+            "Returned EACCES on path where we have permission"
+        ),
+        Err(libc::EPERM) => assert_eq!(
+            inv.perm,
+            Some(libc::EPERM),
+            "Returned EPERM on path where we have permission"
         ),
         Err(libc::ENOENT) => assert!(!inv.parent_exists, "Returned ENOENT on extant parent"),
         Err(e) => panic!("Got unexpected error code {}", e),

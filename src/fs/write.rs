@@ -33,9 +33,11 @@ impl InvFS {
             lock_owner
         );
         let cwd = chdirin(&self.root);
+        let mut dl = self.data.lock().unwrap();
         let inv = inv_write_before(
             callid,
             req,
+            &self.root,
             ino,
             fh,
             offset,
@@ -43,8 +45,9 @@ impl InvFS {
             write_flags,
             flags,
             lock_owner,
+            &mut dl,
         );
-        let ids = set_ids(callid, req);
+        let ids = set_ids(callid, req, None);
         let res = unsafe {
             let offs = libc::lseek(fh as i32, offset, libc::SEEK_SET);
             assert_eq!(offs, offset, "failed to seek");
@@ -57,7 +60,7 @@ impl InvFS {
         };
         log_res!(callid, "{:?}", res);
         restore_ids(ids);
-        inv_write_after(callid, inv, &res);
+        inv_write_after(callid, inv, &res, &mut dl);
         chdirout(cwd);
         match res {
             Ok(v) => reply.written(v.try_into().unwrap()),

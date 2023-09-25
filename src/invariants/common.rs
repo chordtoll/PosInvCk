@@ -1,6 +1,8 @@
-use std::{ffi::OsStr, os::linux::fs::MetadataExt, path::PathBuf};
+use std::{ffi::OsStr, os::linux::fs::MetadataExt, path::PathBuf, sync::MutexGuard};
 
-use crate::{invariants::INODE_PATHS, log_more, logging::CallID};
+use crate::{log_more, logging::CallID};
+
+use super::FSData;
 
 pub struct CPPN {
     pub child_path: PathBuf,
@@ -10,12 +12,16 @@ pub struct CPPN {
     pub toolong: bool,
 }
 
-pub fn common_pre_parent_name(parent: u64, name: &OsStr) -> CPPN {
-    let ip = INODE_PATHS.lock().unwrap();
+pub fn common_pre_parent_name(
+    parent: u64,
+    name: &OsStr,
+    fs_data: &mut MutexGuard<'_, FSData>,
+) -> CPPN {
+    let ip = &fs_data.INV_INODE_PATHS;
     let parent_paths = ip
         .get_all(parent)
-        .expect("Called lookup on unknown parent inode");
-    let parent_path = parent_paths.first().expect("Parent has no paths");
+        .unwrap_or_else(|| panic!("Called lookup on unknown parent inode: {}", parent));
+    let parent_path = parent_paths.iter().next().expect("Parent has no paths");
     assert!(
         parent_path.exists(),
         "Parent {:?} does not exist",
@@ -58,11 +64,15 @@ pub struct CPI {
     pub exists: bool,
 }
 
-pub fn common_pre_ino(callid: CallID, ino: u64) -> CPI {
-    let ip = INODE_PATHS.lock().unwrap();
+pub fn common_pre_ino(callid: CallID, ino: u64, fs_data: &mut MutexGuard<'_, FSData>) -> CPI {
+    let ip = &fs_data.INV_INODE_PATHS;
     let inode_paths = ip.get_all(ino).expect("Called lookup on unknown inode");
     log_more!(callid, "Inode {} has paths {:?}", ino, inode_paths);
-    let inode_path = inode_paths.first().expect("Inode has no paths").clone();
+    let inode_path = inode_paths
+        .iter()
+        .next()
+        .expect("Inode has no paths")
+        .clone();
     let exists = inode_path.symlink_metadata().is_ok();
 
     CPI { inode_path, exists }
