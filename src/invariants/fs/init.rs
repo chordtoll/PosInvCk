@@ -1,7 +1,12 @@
 use std::{os::unix::prelude::MetadataExt, path::PathBuf, sync::MutexGuard};
 
 use crate::{
-    file_attr::FileAttr, fs::InvFS, invariants::FSData, load_prev_contents, logging::CallID,
+    file_attr::FileAttr,
+    fs::InvFS,
+    invariants::FSData,
+    load_prev_contents,
+    logging::CallID,
+    req_rep::{KernelConfig, Request},
 };
 
 pub struct InitInv {
@@ -11,8 +16,8 @@ pub struct InitInv {
 pub fn inv_init_before(
     _callid: CallID,
     fs: &InvFS,
-    _req: &fuser::Request<'_>,
-    _config: &fuser::KernelConfig,
+    _req: Request,
+    _config: &KernelConfig,
 ) -> InitInv {
     InitInv {
         root: fs.root.clone(),

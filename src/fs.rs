@@ -8,7 +8,12 @@ use std::{
     time::Duration,
 };
 
-use crate::{invariants::FSData, log_more, logging::CallID};
+use crate::{
+    invariants::FSData,
+    log_more,
+    logging::CallID,
+    req_rep::KernelConfig,
+};
 use fuser::Filesystem;
 
 use libc::c_int;
@@ -78,7 +83,8 @@ impl Filesystem for InvFS {
         req: &fuser::Request<'_>,
         config: &mut fuser::KernelConfig,
     ) -> Result<(), c_int> {
-        self.do_init(req, config)
+        let config = KernelConfig::new(config);
+        self.do_init(req.into(), &config)
     }
 
     fn destroy(&mut self) {
