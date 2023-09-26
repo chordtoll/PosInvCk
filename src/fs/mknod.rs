@@ -34,7 +34,7 @@ impl InvFS {
         let inv = inv_mknod_before(
             callid, req, &self.root, parent, name, mode, umask, rdev, &mut dl,
         );
-        let ids = set_ids(callid, req, Some(umask));
+        let ids = set_ids(callid, req.into(), Some(umask));
         let ip = &mut dl.INODE_PATHS;
         let p_path = ip.get(parent);
         log_more!(callid, "parent={:?}", p_path);

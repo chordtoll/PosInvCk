@@ -23,7 +23,7 @@ impl InvFS {
     ) {
         let callid = log_call!("READDIR", "ino={},fh={:x},offset={:x}", ino, fh, offset);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let dir = self.dir_fhs.get(&fh).unwrap();
         let res = unsafe {
             libc::seekdir(*dir, offset);

@@ -16,7 +16,7 @@ impl InvFS {
     ) {
         let callid = log_call!("RELEASEDIR", "ino={},fh={},flags={}", ino, fh, flags);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let dirp = self.dir_fhs.remove(&fh).unwrap();
         let res = unsafe {
             let res = libc::closedir(dirp);

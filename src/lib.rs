@@ -20,6 +20,10 @@ pub mod inode_mapper;
 pub mod invariants;
 pub mod logging;
 pub mod logwrapper;
+pub mod req_rep;
+
+#[cfg(test)]
+pub mod test;
 
 pub fn load_prev_contents(fs_data: &mut FSData) -> bool {
     let rfr = std::fs::remove_file("fs.contents");

@@ -11,7 +11,7 @@ impl InvFS {
     pub fn do_init(
         &mut self,
         req: &fuser::Request<'_>,
-        config: &mut fuser::KernelConfig,
+        config: &fuser::KernelConfig,
     ) -> Result<(), c_int> {
         let callid = log_call!("INIT", "config={:?}", config);
         let inv = inv_init_before(callid, self, req, config);

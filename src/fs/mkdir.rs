@@ -30,7 +30,7 @@ impl InvFS {
         let cwd = chdirin(&self.root);
         let mut dl = self.data.lock().unwrap();
         let inv = inv_mkdir_before(callid, req, &self.root, parent, name, mode, umask, &mut dl);
-        let ids = set_ids(callid, req, Some(umask));
+        let ids = set_ids(callid, req.into(), Some(umask));
         let ip = &mut dl.INODE_PATHS;
         let p_path = ip.get(parent);
         log_more!(callid, "parent={:?}", p_path);

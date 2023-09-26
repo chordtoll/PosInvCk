@@ -35,7 +35,7 @@ impl InvFS {
         let inv = inv_setxattr_before(
             callid, req, &self.root, ino, name, value, flags, position, &mut dl,
         );
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let ip = &dl.INODE_PATHS;
         let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);

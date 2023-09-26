@@ -28,7 +28,7 @@ impl InvFS {
         let cwd = chdirin(&self.root);
         let mut dl = self.data.lock().unwrap();
         let inv = inv_link_before(callid, req, &self.root, ino, newparent, newname, &mut dl);
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let ip = &mut dl.INODE_PATHS;
         let p_path = ip.get(newparent);
         log_more!(callid, "newparent={:?}", p_path);

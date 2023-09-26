@@ -10,6 +10,7 @@ use std::{
 
 use crate::{invariants::FSData, log_more, logging::CallID};
 use fuser::Filesystem;
+
 use libc::c_int;
 use procfs::ProcResult;
 
@@ -99,7 +100,7 @@ impl Filesystem for InvFS {
     }
 
     fn getattr(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
-        self.do_getattr(req, ino, reply)
+        self.do_getattr(req, ino, reply);
     }
 
     fn setattr(
@@ -140,7 +141,7 @@ impl Filesystem for InvFS {
         rdev: u32,
         reply: fuser::ReplyEntry,
     ) {
-        self.do_mknod(req, parent, name, mode, umask, rdev, reply)
+        self.do_mknod(req, parent, name, mode, umask, rdev, reply);
     }
 
     fn mkdir(
@@ -152,7 +153,7 @@ impl Filesystem for InvFS {
         umask: u32,
         reply: fuser::ReplyEntry,
     ) {
-        self.do_mkdir(req, parent, name, mode, umask, reply)
+        self.do_mkdir(req, parent, name, mode, umask, reply);
     }
 
     fn unlink(
@@ -385,7 +386,7 @@ impl Filesystem for InvFS {
     }
 
     fn access(&mut self, req: &fuser::Request<'_>, ino: u64, mask: i32, reply: fuser::ReplyEmpty) {
-        self.do_access(req, ino, mask, reply)
+        self.do_access(req, ino, mask, reply);
     }
 
     fn create(
@@ -398,7 +399,7 @@ impl Filesystem for InvFS {
         flags: i32,
         reply: fuser::ReplyCreate,
     ) {
-        self.do_create(req, parent, name, mode, umask, flags, reply)
+        self.do_create(req, parent, name, mode, umask, flags, reply);
     }
 
     fn getlk(
@@ -528,7 +529,7 @@ pub fn chdirout(prev: PathBuf) {
     std::env::set_current_dir(prev).unwrap();
 }
 
-fn set_ids(callid: CallID, req: &fuser::Request<'_>, umask: Option<u32>) -> Ids {
+fn set_ids(callid: CallID, req: crate::req_rep::Request, umask: Option<u32>) -> Ids {
     let gids = get_groups(req.pid().try_into().unwrap()).unwrap_or(vec![]);
     log_more!(
         callid,

@@ -11,7 +11,7 @@ impl InvFS {
     pub fn do_statfs(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyStatfs) {
         let callid = log_call!("STATFS", "ino={}", ino);
         let cwd = chdirin(&self.root);
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let dl = self.data.lock().unwrap();
         let ip = &dl.INODE_PATHS;
         let path = ip.get(ino);

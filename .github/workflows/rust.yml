@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: sudo apt-get update
+    - run: sudo apt-get install fuse libfuse-dev
+    - run: rustup component add clippy
+    - run: cargo clippy
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: sudo apt-get update
+    - run: sudo apt-get install fuse libfuse-dev
+    - run: cargo test
+  cov:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: sudo apt-get update
+    - run: sudo apt-get install fuse libfuse-dev
+    - run: cargo install cargo-tarpaulin
+    - run: cargo tarpaulin --out xml
+    - uses: codecov/codecov-action@v3
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

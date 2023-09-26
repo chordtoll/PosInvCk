@@ -33,7 +33,7 @@ impl InvFS {
         let inv = inv_rename_before(
             callid, req, &self.root, parent, name, newparent, newname, flags, &mut dl,
         );
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let ip = &mut dl.INODE_PATHS;
         let old_parent = ip.get(parent);
         log_more!(callid, "old_parent={:?}", old_parent);

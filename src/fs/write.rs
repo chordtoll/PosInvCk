@@ -47,7 +47,7 @@ impl InvFS {
             lock_owner,
             &mut dl,
         );
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let res = unsafe {
             let offs = libc::lseek(fh as i32, offset, libc::SEEK_SET);
             assert_eq!(offs, offset, "failed to seek");

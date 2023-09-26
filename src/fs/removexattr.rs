@@ -20,7 +20,7 @@ impl InvFS {
         let cwd = chdirin(&self.root);
         let mut dl = self.data.lock().unwrap();
         let inv = inv_removexattr_before(callid, req, &self.root, ino, name, &mut dl);
-        let ids = set_ids(callid, req, None);
+        let ids = set_ids(callid, req.into(), None);
         let ip = &dl.INODE_PATHS;
         let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);

@@ -16,6 +16,7 @@ fuser = "0.13.0"
 lazy_static = "1.4.0"
 libc = { default-features = false, version = "0.2.142" }
 maplit = "1.0.2"
+once_cell = "=1.17.0"
 procfs = { default-features = false, version = "0.15.1" }
 ron = "0.8.0"
 serde = { version = "1.0.163", features = ["derive"] }
@@ -37,3 +38,6 @@ check-contents = ["walkdir"]
 
 [workspace]
 members=[]
+
+[dev-dependencies]
+uuid = { version = "1.4.1", features = ["v4"] }
