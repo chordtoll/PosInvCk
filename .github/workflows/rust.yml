@@ -16,22 +16,27 @@ jobs:
     - run: sudo apt-get update
     - run: sudo apt-get install fuse libfuse-dev
     - run: rustup component add clippy
-    - run: cargo clippy
+    - run: cargo clippy -- -Dwarnings
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - run: sudo apt-get update
     - run: sudo apt-get install fuse libfuse-dev
+    - run: mkdir /tmp/picbase
     - run: cargo test
+    env:
+      PIC_TEST_PATH: /tmp/picbase
   cov:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: taiki-e/install-action@cargo-tarpaulin
     - run: sudo apt-get update
     - run: sudo apt-get install fuse libfuse-dev
-    - run: cargo install cargo-tarpaulin
+    - run: mkdir /tmp/picbase
     - run: cargo tarpaulin --out xml
     - uses: codecov/codecov-action@v3
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      PIC_TEST_PATH: /tmp/picbase
