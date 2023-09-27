@@ -157,4 +157,32 @@ mod tests {
             btreemap! {2=>btreeset!{PathBuf::from("/baz/foo")}}
         );
     }
+    #[test]
+    fn get() {
+        let im = InodeMapper::load(
+            btreemap! {2=>btreeset!{PathBuf::from("/foo")},3=>btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")}},
+        );
+        assert_eq!(
+            im.get(3),
+            PathBuf::from("/bar")
+        )
+    }
+    #[test]
+    fn get_all() {
+        let im = InodeMapper::load(
+            btreemap! {2=>btreeset!{PathBuf::from("/foo")},3=>btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")}},
+        );
+        assert_eq!(
+            im.get_all(3),
+            Some(&btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")})
+        )
+    }
+    #[test]
+    #[should_panic]
+    fn get_nonexistant() {
+        let im = InodeMapper::load(
+            btreemap! {2=>btreeset!{PathBuf::from("/foo")},3=>btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")}},
+        );
+        im.get(4);
+    }
 }
