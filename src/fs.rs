@@ -12,7 +12,7 @@ use crate::{
     invariants::FSData,
     log_more,
     logging::CallID,
-    req_rep::KernelConfig,
+    req_rep::{KernelConfig, ReplyCreate, ReplyEntry},
 };
 use fuser::Filesystem;
 
@@ -147,7 +147,9 @@ impl Filesystem for InvFS {
         rdev: u32,
         reply: fuser::ReplyEntry,
     ) {
-        self.do_mknod(req, parent, name, mode, umask, rdev, reply);
+        let rep = ReplyEntry::new();
+        self.do_mknod(req.into(), parent, name, mode, umask, rdev, &rep);
+        rep.reply(reply)
     }
 
     fn mkdir(
@@ -159,7 +161,9 @@ impl Filesystem for InvFS {
         umask: u32,
         reply: fuser::ReplyEntry,
     ) {
-        self.do_mkdir(req, parent, name, mode, umask, reply);
+        let rep = ReplyEntry::new();
+        self.do_mkdir(req.into(), parent, name, mode, umask, &rep);
+        rep.reply(reply)
     }
 
     fn unlink(
@@ -405,7 +409,9 @@ impl Filesystem for InvFS {
         flags: i32,
         reply: fuser::ReplyCreate,
     ) {
-        self.do_create(req, parent, name, mode, umask, flags, reply);
+        let rep = ReplyCreate::new();
+        self.do_create(req.into(), parent, name, mode, umask, flags, &rep);
+        rep.reply(reply);
     }
 
     fn getlk(
