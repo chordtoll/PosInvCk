@@ -35,7 +35,7 @@ jobs:
     - run: sudo apt-get update
     - run: sudo apt-get install fuse libfuse-dev
     - run: mkdir /tmp/picbase
-    - run: cargo tarpaulin --out xml
+    - run: sudo -E env "PATH=$PATH" cargo tarpaulin --out xml
     - uses: codecov/codecov-action@v3
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
