@@ -75,3 +75,86 @@ impl InodeMapper {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use maplit::{btreemap, btreeset};
+
+    use super::InodeMapper;
+
+    #[test]
+    fn empty() {
+        let im = InodeMapper::new();
+        assert_eq!(im.store(), btreemap! {});
+    }
+    #[test]
+    fn insert_same_inode() {
+        let mut im = InodeMapper::new();
+        assert_eq!(im.insert(2, PathBuf::from("/foo")), 2);
+        assert_eq!(im.insert(2, PathBuf::from("/bar")), 2);
+        assert_eq!(
+            im.store(),
+            btreemap! {2=>btreeset!{PathBuf::from("/foo"),PathBuf::from("/bar")}}
+        );
+    }
+    #[test]
+    fn insert_different_inode() {
+        let mut im = InodeMapper::new();
+        assert_eq!(im.insert(2, PathBuf::from("/foo")), 2);
+        assert_eq!(im.insert(3, PathBuf::from("/bar")), 3);
+        assert_eq!(
+            im.store(),
+            btreemap! {2=>btreeset!{PathBuf::from("/foo")},3=>btreeset!{PathBuf::from("/bar")}}
+        );
+    }
+    #[test]
+    fn insert_dot() {
+        let mut im = InodeMapper::new();
+        assert_eq!(im.insert(2, PathBuf::from(".")), 1);
+        assert_eq!(im.store(), btreemap! {});
+    }
+    #[test]
+    fn load() {
+        let im = InodeMapper::load(
+            btreemap! {2=>btreeset!{PathBuf::from("/foo")},3=>btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")}},
+        );
+        assert_eq!(
+            im.store(),
+            btreemap! {2=>btreeset!{PathBuf::from("/foo")},3=>btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")}}
+        )
+    }
+    #[test]
+    fn remove() {
+        let mut im = InodeMapper::new();
+        assert_eq!(im.insert(2, PathBuf::from("/foo")), 2);
+        assert_eq!(im.insert(2, PathBuf::from("/bar")), 2);
+        im.remove(&PathBuf::from("/foo"));
+        assert_eq!(im.store(), btreemap! {2=>btreeset!{PathBuf::from("/bar")}});
+    }
+    #[test]
+    fn remove_last() {
+        let mut im = InodeMapper::new();
+        assert_eq!(im.insert(2, PathBuf::from("/foo")), 2);
+        im.remove(&PathBuf::from("/foo"));
+        assert_eq!(im.store(), btreemap! {});
+    }
+    #[test]
+    fn rename() {
+        let mut im = InodeMapper::new();
+        assert_eq!(im.insert(2, PathBuf::from("/bar")), 2);
+        im.rename(PathBuf::from("/bar"), PathBuf::from("/baz"));
+        assert_eq!(im.store(), btreemap! {2=>btreeset!{PathBuf::from("/baz")}});
+    }
+    #[test]
+    fn rename_subdirs() {
+        let mut im = InodeMapper::new();
+        assert_eq!(im.insert(2, PathBuf::from("/bar/foo")), 2);
+        im.rename(PathBuf::from("/bar"), PathBuf::from("/baz"));
+        assert_eq!(
+            im.store(),
+            btreemap! {2=>btreeset!{PathBuf::from("/baz/foo")}}
+        );
+    }
+}
