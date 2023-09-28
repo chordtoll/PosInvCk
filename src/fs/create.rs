@@ -121,7 +121,7 @@ mod tests {
                     flags: 0
                 },
                 0,
-                3,
+                rep.get().unwrap().3,
                 0
             ))
         );

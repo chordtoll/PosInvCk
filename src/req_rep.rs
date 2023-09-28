@@ -107,3 +107,28 @@ impl ReplyEntry {
         }
     }
 }
+
+type ReplyAttrOK = (Duration, FileAttr);
+
+pub struct ReplyAttr(OnceCell<Result<ReplyAttrOK, i32>>);
+
+impl ReplyAttr {
+    pub fn new() -> Self {
+        Self(OnceCell::new())
+    }
+    pub fn attr(&self, ttl: &Duration, attr: &FileAttr) {
+        self.0.set(Ok((*ttl, *attr))).unwrap();
+    }
+    pub fn error(&self, e: i32) {
+        self.0.set(Err(e)).unwrap()
+    }
+    pub fn get(&self) -> Result<(Duration, FileAttr), i32> {
+        *self.0.get().unwrap()
+    }
+    pub fn reply(&self, rep: fuser::ReplyAttr) {
+        match self.0.get().unwrap() {
+            Ok((ttl, attr)) => rep.attr(ttl, attr),
+            Err(e) => rep.error(*e),
+        }
+    }
+}
