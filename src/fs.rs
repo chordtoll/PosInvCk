@@ -12,7 +12,7 @@ use crate::{
     invariants::FSData,
     log_more,
     logging::CallID,
-    req_rep::{KernelConfig, ReplyCreate, ReplyEntry},
+    req_rep::{KernelConfig, ReplyAttr, ReplyCreate, ReplyEntry},
 };
 use fuser::Filesystem;
 
@@ -106,7 +106,9 @@ impl Filesystem for InvFS {
     }
 
     fn getattr(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
-        self.do_getattr(req, ino, reply);
+        let rep = ReplyAttr::new();
+        self.do_getattr(req.into(), ino, &rep);
+        rep.reply(reply)
     }
 
     fn setattr(

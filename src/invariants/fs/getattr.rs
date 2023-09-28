@@ -11,6 +11,7 @@ use crate::{
     },
     log_more,
     logging::CallID,
+    req_rep::Request,
 };
 
 #[derive(Debug)]
@@ -28,7 +29,7 @@ pub struct GetattrInv {
 
 pub fn inv_getattr_before(
     callid: CallID,
-    req: &fuser::Request<'_>,
+    req: &Request,
     base: &Path,
     ino: u64,
     fs_data: &mut MutexGuard<'_, FSData>,
