@@ -7,7 +7,7 @@ use crate::{
         FSData,
     },
     log_more,
-    logging::CallID,
+    logging::CallID, req_rep::Request,
 };
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub struct WriteInv {
 
 pub fn inv_write_before(
     callid: CallID,
-    req: &fuser::Request<'_>,
+    req: &Request,
     base: &Path,
     ino: u64,
     _fh: u64,
