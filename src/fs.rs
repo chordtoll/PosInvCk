@@ -12,7 +12,7 @@ use crate::{
     invariants::FSData,
     log_more,
     logging::CallID,
-    req_rep::{KernelConfig, ReplyAttr, ReplyCreate, ReplyEntry, ReplyWrite, ReplyOpen},
+    req_rep::{KernelConfig, ReplyAttr, ReplyCreate, ReplyData, ReplyEntry, ReplyWrite, ReplyOpen},
 };
 use fuser::Filesystem;
 
@@ -240,7 +240,9 @@ impl Filesystem for InvFS {
         lock_owner: Option<u64>,
         reply: fuser::ReplyData,
     ) {
-        self.do_read(req, ino, fh, offset, size, flags, lock_owner, reply)
+        let rep = ReplyData::new();
+        self.do_read(req.into(), ino, fh, offset, size, flags, lock_owner, &rep);
+        rep.reply(reply);
     }
 
     fn write(
