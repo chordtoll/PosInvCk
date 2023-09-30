@@ -8,6 +8,7 @@ use crate::{
     },
     log_more,
     logging::CallID,
+    req_rep::Request,
 };
 
 #[derive(Debug)]
@@ -22,7 +23,7 @@ pub struct ReadInv {
 
 pub fn inv_read_before(
     callid: CallID,
-    req: &fuser::Request<'_>,
+    req: &Request,
     base: &Path,
     ino: u64,
     _fh: u64,

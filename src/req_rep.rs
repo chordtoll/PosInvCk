@@ -182,3 +182,28 @@ impl ReplyOpen {
         }
     }
 }
+
+type ReplyDataOK = Vec<u8>;
+
+pub struct ReplyData(OnceCell<Result<ReplyDataOK, i32>>);
+
+impl ReplyData {
+    pub fn new() -> Self {
+        Self(OnceCell::new())
+    }
+    pub fn data(&self, data: Vec<u8>) {
+        self.0.set(Ok(data)).unwrap();
+    }
+    pub fn error(&self, e: i32) {
+        self.0.set(Err(e)).unwrap()
+    }
+    pub fn get(&self) -> Result<ReplyDataOK, i32> {
+        self.0.get().unwrap().clone()
+    }
+    pub fn reply(&self, rep: fuser::ReplyData) {
+        match self.0.get().unwrap() {
+            Ok(data) => rep.data(data),
+            Err(e) => rep.error(*e),
+        }
+    }
+}
