@@ -132,3 +132,53 @@ impl ReplyAttr {
         }
     }
 }
+
+type ReplyWriteOK = u32;
+
+pub struct ReplyWrite(OnceCell<Result<ReplyWriteOK, i32>>);
+
+impl ReplyWrite {
+    pub fn new() -> Self {
+        Self(OnceCell::new())
+    }
+    pub fn written(&self, written: u32) {
+        self.0.set(Ok(written)).unwrap();
+    }
+    pub fn error(&self, e: i32) {
+        self.0.set(Err(e)).unwrap()
+    }
+    pub fn get(&self) -> Result<ReplyWriteOK, i32> {
+        *self.0.get().unwrap()
+    }
+    pub fn reply(&self, rep: fuser::ReplyWrite) {
+        match self.0.get().unwrap() {
+            Ok(written) => rep.written(*written),
+            Err(e) => rep.error(*e),
+        }
+    }
+}
+
+type ReplyOpenOK = (u64,u32);
+
+pub struct ReplyOpen(OnceCell<Result<ReplyOpenOK, i32>>);
+
+impl ReplyOpen {
+    pub fn new() -> Self {
+        Self(OnceCell::new())
+    }
+    pub fn opened(&self, fh: u64, flags: u32) {
+        self.0.set(Ok((fh,flags))).unwrap();
+    }
+    pub fn error(&self, e: i32) {
+        self.0.set(Err(e)).unwrap()
+    }
+    pub fn get(&self) -> Result<ReplyOpenOK, i32> {
+        *self.0.get().unwrap()
+    }
+    pub fn reply(&self, rep: fuser::ReplyOpen) {
+        match self.0.get().unwrap() {
+            Ok((fh,flags)) => rep.opened(*fh,*flags),
+            Err(e) => rep.error(*e),
+        }
+    }
+}
