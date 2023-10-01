@@ -207,3 +207,28 @@ impl ReplyData {
         }
     }
 }
+
+type ReplyEmptyOK = ();
+
+pub struct ReplyEmpty(OnceCell<Result<ReplyEmptyOK, i32>>);
+
+impl ReplyEmpty {
+    pub fn new() -> Self {
+        Self(OnceCell::new())
+    }
+    pub fn ok(&self) {
+        self.0.set(Ok(())).unwrap();
+    }
+    pub fn error(&self, e: i32) {
+        self.0.set(Err(e)).unwrap()
+    }
+    pub fn get(&self) -> Result<ReplyEmptyOK, i32> {
+        *self.0.get().unwrap()
+    }
+    pub fn reply(&self, rep: fuser::ReplyEmpty) {
+        match self.0.get().unwrap() {
+            Ok(()) => rep.ok(),
+            Err(e) => rep.error(*e),
+        }
+    }
+}
