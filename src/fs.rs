@@ -98,7 +98,9 @@ impl Filesystem for InvFS {
         name: &std::ffi::OsStr,
         reply: fuser::ReplyEntry,
     ) {
-        self.do_lookup(req, parent, name, reply)
+        let rep = ReplyEntry::new();
+        self.do_lookup(req.into(), parent, name, &rep);
+        rep.reply(reply);
     }
 
     fn forget(&mut self, req: &fuser::Request<'_>, ino: u64, nlookup: u64) {
