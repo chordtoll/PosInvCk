@@ -12,7 +12,7 @@ use crate::{
     invariants::FSData,
     log_more,
     logging::CallID,
-    req_rep::{KernelConfig, ReplyAttr, ReplyCreate, ReplyData, ReplyEntry, ReplyWrite, ReplyOpen},
+    req_rep::{KernelConfig, ReplyAttr, ReplyCreate, ReplyData, ReplyEntry, ReplyWrite, ReplyOpen, ReplyEmpty},
 };
 use fuser::Filesystem;
 
@@ -175,7 +175,9 @@ impl Filesystem for InvFS {
         name: &std::ffi::OsStr,
         reply: fuser::ReplyEmpty,
     ) {
-        self.do_unlink(req, parent, name, reply)
+        let rep = ReplyEmpty::new();
+        self.do_unlink(req.into(), parent, name, &rep);
+        rep.reply(reply);
     }
 
     fn rmdir(
@@ -185,7 +187,9 @@ impl Filesystem for InvFS {
         name: &std::ffi::OsStr,
         reply: fuser::ReplyEmpty,
     ) {
-        self.do_rmdir(req, parent, name, reply)
+        let rep = ReplyEmpty::new();
+        self.do_rmdir(req.into(), parent, name, &rep);
+        rep.reply(reply);
     }
 
     fn symlink(
