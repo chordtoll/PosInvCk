@@ -215,7 +215,9 @@ impl Filesystem for InvFS {
         flags: u32,
         reply: fuser::ReplyEmpty,
     ) {
-        self.do_rename(req, parent, name, newparent, newname, flags, reply)
+        let rep = ReplyEmpty::new();
+        self.do_rename(req.into(), parent, name, newparent, newname, flags, &rep);
+        rep.reply(reply);
     }
 
     fn link(
