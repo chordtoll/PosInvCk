@@ -15,6 +15,7 @@ use crate::{
     },
     log_more,
     logging::CallID,
+    req_rep::Request,
 };
 
 #[derive(Debug)]
@@ -40,7 +41,7 @@ pub struct RenameInv {
 
 pub fn inv_rename_before(
     _callid: CallID,
-    req: &fuser::Request<'_>,
+    req: &Request,
     base: &Path,
     parent: u64,
     name: &std::ffi::OsStr,
