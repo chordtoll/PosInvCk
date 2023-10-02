@@ -151,7 +151,7 @@ mod tests {
                     blocks: 0,
                     atime: rep_c.get().unwrap().1.atime,
                     mtime: rep_c.get().unwrap().1.mtime,
-                    ctime: rep_c.get().unwrap().1.ctime,
+                    ctime: rep_new.get().unwrap().1.ctime,
                     crtime: rep_c.get().unwrap().1.crtime,
                     kind: fuser::FileType::RegularFile,
                     perm: 0,
