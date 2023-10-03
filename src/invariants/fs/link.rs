@@ -15,6 +15,7 @@ use crate::{
     },
     log_more,
     logging::CallID,
+    req_rep::Request,
 };
 
 #[derive(Debug)]
@@ -32,7 +33,7 @@ pub struct LinkInv {
 
 pub fn inv_link_before(
     callid: CallID,
-    req: &fuser::Request<'_>,
+    req: &Request,
     base: &Path,
     ino: u64,
     newparent: u64,
