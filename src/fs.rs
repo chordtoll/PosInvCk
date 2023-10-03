@@ -228,7 +228,9 @@ impl Filesystem for InvFS {
         newname: &std::ffi::OsStr,
         reply: fuser::ReplyEntry,
     ) {
-        self.do_link(req, ino, newparent, newname, reply)
+        let rep = ReplyEntry::new();
+        self.do_link(req.into(), ino, newparent, newname, &rep);
+        rep.reply(reply);
     }
 
     fn open(&mut self, req: &fuser::Request<'_>, ino: u64, flags: i32, reply: fuser::ReplyOpen) {
