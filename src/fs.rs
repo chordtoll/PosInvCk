@@ -77,6 +77,7 @@ pub mod symlink;
 pub mod unlink;
 pub mod write;
 
+#[cfg(not(tarpaulin_include))]
 impl Filesystem for InvFS {
     fn init(
         &mut self,
