@@ -15,7 +15,7 @@ use crate::{
         FSData,
     },
     log_more,
-    logging::CallID,
+    logging::CallID, req_rep::Request,
 };
 
 #[derive(Debug)]
@@ -33,7 +33,7 @@ pub struct SymlinkInv {
 }
 pub fn inv_symlink_before(
     _callid: CallID,
-    req: &fuser::Request<'_>,
+    req: &Request,
     base: &Path,
     parent: u64,
     name: &std::ffi::OsStr,
