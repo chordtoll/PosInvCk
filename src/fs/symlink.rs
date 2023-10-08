@@ -4,7 +4,8 @@ use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     invariants::fs::symlink::{inv_symlink_after, inv_symlink_before},
-    log_call, log_more, log_res, req_rep::{Request, ReplyEntry},
+    log_call, log_more, log_res,
+    req_rep::{ReplyEntry, Request},
 };
 
 use super::InvFS;

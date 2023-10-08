@@ -162,10 +162,7 @@ mod tests {
         let im = InodeMapper::load(
             btreemap! {2=>btreeset!{PathBuf::from("/foo")},3=>btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")}},
         );
-        assert_eq!(
-            im.get(3),
-            PathBuf::from("/bar")
-        )
+        assert_eq!(im.get(3), PathBuf::from("/bar"))
     }
     #[test]
     fn get_all() {
@@ -174,7 +171,7 @@ mod tests {
         );
         assert_eq!(
             im.get_all(3),
-            Some(&btreeset!{PathBuf::from("/bar"),PathBuf::from("/baz")})
+            Some(&btreeset! {PathBuf::from("/bar"),PathBuf::from("/baz")})
         )
     }
     #[test]

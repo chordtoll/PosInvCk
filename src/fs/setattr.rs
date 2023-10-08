@@ -205,8 +205,10 @@ impl InvFS {
 mod tests {
     use std::ffi::OsString;
 
-    use crate::{req_rep::{Request, KernelConfig, ReplyCreate, ReplyAttr}, fs::TTL};
-
+    use crate::{
+        fs::TTL,
+        req_rep::{KernelConfig, ReplyAttr, ReplyCreate, Request},
+    };
 
     #[test]
     fn test_setattr_none() {
