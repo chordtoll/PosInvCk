@@ -117,7 +117,7 @@ mod tests {
             0,
             &rep_r,
         );
-        assert_eq!(rep_r.get(),Ok(()));
+        assert_eq!(rep_r.get(), Ok(()));
         let rep_old = ReplyEntry::new();
         ifs.do_lookup(
             Request {

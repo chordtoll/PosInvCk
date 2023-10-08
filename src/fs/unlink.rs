@@ -3,7 +3,8 @@ use std::{ffi::CString, os::unix::prelude::OsStrExt};
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
     invariants::fs::unlink::{inv_unlink_after, inv_unlink_before},
-    log_call, log_more, log_res, req_rep::{Request, ReplyEmpty},
+    log_call, log_more, log_res,
+    req_rep::{ReplyEmpty, Request},
 };
 
 use super::InvFS;
@@ -53,7 +54,7 @@ impl InvFS {
 mod tests {
     use std::ffi::OsString;
 
-    use crate::req_rep::{KernelConfig, ReplyCreate, Request, ReplyEmpty};
+    use crate::req_rep::{KernelConfig, ReplyCreate, ReplyEmpty, Request};
 
     #[test]
     fn test_unlink() {
@@ -83,10 +84,15 @@ mod tests {
         );
         assert!(rep.get().is_ok());
         let rep = ReplyEmpty::new();
-        ifs.do_unlink(Request {
-            uid: 0,
-            gid: 0,
-            pid: 0,
-        }, 1, &OsString::from("foo"), &rep);
+        ifs.do_unlink(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            1,
+            &OsString::from("foo"),
+            &rep,
+        );
     }
 }

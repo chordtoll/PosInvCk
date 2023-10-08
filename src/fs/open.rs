@@ -2,19 +2,14 @@ use std::{ffi::CString, os::unix::prelude::OsStrExt};
 
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
-    log_call, log_more, log_res, req_rep::{Request, ReplyOpen},
+    log_call, log_more, log_res,
+    req_rep::{ReplyOpen, Request},
 };
 
 use super::InvFS;
 
 impl InvFS {
-    pub fn do_open(
-        &mut self,
-        req: Request,
-        ino: u64,
-        flags: i32,
-        reply: &ReplyOpen,
-    ) {
+    pub fn do_open(&mut self, req: Request, ino: u64, flags: i32, reply: &ReplyOpen) {
         let callid = log_call!("OPEN", "ino={},flags={:x}", ino, flags);
         let cwd = chdirin(&self.root);
         let ids = set_ids(callid, req, None);
@@ -47,7 +42,7 @@ mod tests {
 
     use crate::{
         fs::TTL,
-        req_rep::{KernelConfig, ReplyCreate, Request, ReplyOpen},
+        req_rep::{KernelConfig, ReplyCreate, ReplyOpen, Request},
     };
 
     #[test]
@@ -103,13 +98,18 @@ mod tests {
             ))
         );
         let o_rep = ReplyOpen::new();
-        ifs.do_open(Request {
-            uid: 0,
-            gid: 0,
-            pid: 0,
-        }, rep.get().unwrap().1.ino, 0, &o_rep);
+        ifs.do_open(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            rep.get().unwrap().1.ino,
+            0,
+            &o_rep,
+        );
         assert!(o_rep.get().is_ok());
-        assert_ne!(o_rep.get().unwrap().0,0);
-        assert_eq!(o_rep.get().unwrap().1,0);
+        assert_ne!(o_rep.get().unwrap().0, 0);
+        assert_eq!(o_rep.get().unwrap().1, 0);
     }
 }

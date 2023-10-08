@@ -158,7 +158,7 @@ impl ReplyWrite {
     }
 }
 
-type ReplyOpenOK = (u64,u32);
+type ReplyOpenOK = (u64, u32);
 
 pub struct ReplyOpen(OnceCell<Result<ReplyOpenOK, i32>>);
 
@@ -167,7 +167,7 @@ impl ReplyOpen {
         Self(OnceCell::new())
     }
     pub fn opened(&self, fh: u64, flags: u32) {
-        self.0.set(Ok((fh,flags))).unwrap();
+        self.0.set(Ok((fh, flags))).unwrap();
     }
     pub fn error(&self, e: i32) {
         self.0.set(Err(e)).unwrap()
@@ -177,7 +177,7 @@ impl ReplyOpen {
     }
     pub fn reply(&self, rep: fuser::ReplyOpen) {
         match self.0.get().unwrap() {
-            Ok((fh,flags)) => rep.opened(*fh,*flags),
+            Ok((fh, flags)) => rep.opened(*fh, *flags),
             Err(e) => rep.error(*e),
         }
     }

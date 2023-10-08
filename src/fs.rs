@@ -12,7 +12,10 @@ use crate::{
     invariants::FSData,
     log_more,
     logging::CallID,
-    req_rep::{KernelConfig, ReplyAttr, ReplyCreate, ReplyData, ReplyEntry, ReplyWrite, ReplyOpen, ReplyEmpty},
+    req_rep::{
+        KernelConfig, ReplyAttr, ReplyCreate, ReplyData, ReplyEmpty, ReplyEntry, ReplyOpen,
+        ReplyWrite,
+    },
 };
 use fuser::Filesystem;
 
@@ -134,8 +137,21 @@ impl Filesystem for InvFS {
     ) {
         let rep = ReplyAttr::new();
         self.do_setattr(
-            req.into(), ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime, chgtime, bkuptime,
-            flags, &rep,
+            req.into(),
+            ino,
+            mode,
+            uid,
+            gid,
+            size,
+            atime,
+            mtime,
+            ctime,
+            fh,
+            crtime,
+            chgtime,
+            bkuptime,
+            flags,
+            &rep,
         );
         rep.reply(reply);
     }

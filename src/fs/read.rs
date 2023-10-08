@@ -67,7 +67,7 @@ mod tests {
     };
 
     #[test]
-    fn test_write() {
+    fn test_read() {
         let mut ifs = crate::test::create_ifs();
         ifs.do_init(
             Request {

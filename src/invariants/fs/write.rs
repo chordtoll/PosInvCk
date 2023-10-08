@@ -7,7 +7,8 @@ use crate::{
         FSData,
     },
     log_more,
-    logging::CallID, req_rep::Request,
+    logging::CallID,
+    req_rep::Request,
 };
 
 #[derive(Debug)]
