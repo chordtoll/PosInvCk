@@ -2,7 +2,8 @@ use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids, stat_path, TTL},
     fs_to_fuse::FsToFuseAttr,
     invariants::fs::lookup::{inv_lookup_after, inv_lookup_before},
-    log_call, log_more, log_res, req_rep::{Request, ReplyEntry},
+    log_call, log_more, log_res,
+    req_rep::{ReplyEntry, Request},
 };
 
 use super::InvFS;
@@ -46,11 +47,11 @@ mod tests {
 
     use crate::{
         fs::TTL,
-        req_rep::{KernelConfig, ReplyCreate, Request, ReplyEntry},
+        req_rep::{KernelConfig, ReplyCreate, ReplyEntry, Request},
     };
 
     #[test]
-    fn test_create() {
+    fn test_lookup() {
         let mut ifs = crate::test::create_ifs();
         ifs.do_init(
             Request {
@@ -77,15 +78,21 @@ mod tests {
         );
         assert!(rep_c.get().is_ok());
         let rep_l = ReplyEntry::new();
-        ifs.do_lookup(Request {
-            uid: 0,
-            gid: 0,
-            pid: 0,
-        }, 1, &OsString::from("foo"), &rep_l);
+        ifs.do_lookup(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            1,
+            &OsString::from("foo"),
+            &rep_l,
+        );
         assert_eq!(
             rep_l.get(),
-            Ok((TTL,
-                fuser::FileAttr{
+            Ok((
+                TTL,
+                fuser::FileAttr {
                     ino: rep_c.get().unwrap().1.ino,
                     size: 0,
                     blocks: 0,

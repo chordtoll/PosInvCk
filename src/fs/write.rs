@@ -3,7 +3,8 @@ use libc::c_void;
 use crate::{
     fs::{chdirin, chdirout, restore_ids, set_ids},
     invariants::fs::write::{inv_write_after, inv_write_before},
-    log_call, log_res, req_rep::{Request, ReplyWrite},
+    log_call, log_res,
+    req_rep::{ReplyWrite, Request},
 };
 
 use super::InvFS;
@@ -49,9 +50,14 @@ impl InvFS {
         );
         let ids = set_ids(callid, req, None);
         let res = unsafe {
-            println!("FH: {:?}",fh);
+            println!("FH: {:?}", fh);
             let offs = libc::lseek(fh as i32, offset, libc::SEEK_SET);
-            assert_eq!(offs, offset, "failed to seek: {}",*libc::__errno_location());
+            assert_eq!(
+                offs,
+                offset,
+                "failed to seek: {}",
+                *libc::__errno_location()
+            );
             let res = libc::write(fh as i32, data.as_ptr() as *mut c_void, data.len());
             if res != -1 {
                 Ok(res)
@@ -76,7 +82,7 @@ mod tests {
 
     use crate::{
         fs::TTL,
-        req_rep::{KernelConfig, ReplyCreate, Request, ReplyWrite, ReplyOpen},
+        req_rep::{KernelConfig, ReplyCreate, ReplyOpen, ReplyWrite, Request},
     };
 
     #[test]
@@ -132,19 +138,37 @@ mod tests {
             ))
         );
         let o_rep = ReplyOpen::new();
-        ifs.do_open(Request {
-            uid: 0,
-            gid: 0,
-            pid: 0,
-        }, rep.get().unwrap().1.ino, libc::O_WRONLY, &o_rep);
+        ifs.do_open(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            rep.get().unwrap().1.ino,
+            libc::O_WRONLY,
+            &o_rep,
+        );
         let w_rep = ReplyWrite::new();
-        ifs.do_write(Request {
-            uid: 0,
-            gid: 0,
-            pid: 0,
-        }, rep.get().unwrap().1.ino, o_rep.get().unwrap().0, 0, &[b'f',b'o',b'o'], 0, 0, None, &w_rep);
-        assert_eq!(w_rep.get(),Ok(3));
+        ifs.do_write(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            rep.get().unwrap().1.ino,
+            o_rep.get().unwrap().0,
+            0,
+            &[b'f', b'o', b'o'],
+            0,
+            0,
+            None,
+            &w_rep,
+        );
+        assert_eq!(w_rep.get(), Ok(3));
         let idlu = ifs.data.lock().unwrap();
-        assert_eq!(idlu.INV_FILE_CONTENTS.get(&rep.get().unwrap().1.ino), Some(&vec![b'f',b'o',b'o']))
+        assert_eq!(
+            idlu.INV_FILE_CONTENTS.get(&rep.get().unwrap().1.ino),
+            Some(&vec![b'f', b'o', b'o'])
+        )
     }
 }
