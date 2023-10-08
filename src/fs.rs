@@ -202,7 +202,9 @@ impl Filesystem for InvFS {
         link: &std::path::Path,
         reply: fuser::ReplyEntry,
     ) {
-        self.do_symlink(req, parent, name, link, reply)
+        let rep = ReplyEntry::new();
+        self.do_symlink(req.into(), parent, name, link, &rep);
+        rep.reply(reply);
     }
 
     fn rename(
