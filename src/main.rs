@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use fuser::MountOption;
 use posix_invariant_checker::fs::InvFS;
 
+#[cfg(not(tarpaulin_include))]
 fn main() {
     let base = std::env::args_os().nth(1).expect("[base] [mountpoint]");
     let mountpoint = std::env::args_os().nth(2).expect("[base] [mountpoint]");
