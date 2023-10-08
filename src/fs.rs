@@ -132,10 +132,12 @@ impl Filesystem for InvFS {
         flags: Option<u32>,
         reply: fuser::ReplyAttr,
     ) {
+        let rep = ReplyAttr::new();
         self.do_setattr(
-            req, ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime, chgtime, bkuptime,
-            flags, reply,
-        )
+            req.into(), ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime, chgtime, bkuptime,
+            flags, &rep,
+        );
+        rep.reply(reply);
     }
 
     fn readlink(&mut self, req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyData) {

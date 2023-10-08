@@ -13,6 +13,7 @@ use crate::{
     fs_to_fuse::FsToFuseAttr,
     invariants::fs::setattr::{inv_setattr_after, inv_setattr_before},
     log_call, log_more, log_res,
+    req_rep::{ReplyAttr, Request},
 };
 
 use super::InvFS;
@@ -20,7 +21,7 @@ use super::InvFS;
 impl InvFS {
     pub fn do_setattr(
         &mut self,
-        req: &fuser::Request<'_>,
+        req: Request,
         ino: u64,
         mode: Option<u32>,
         uid: Option<u32>,
@@ -34,16 +35,16 @@ impl InvFS {
         chgtime: Option<std::time::SystemTime>,
         bkuptime: Option<std::time::SystemTime>,
         flags: Option<u32>,
-        reply: fuser::ReplyAttr,
+        reply: &ReplyAttr,
     ) {
         let callid = log_call!("SETATTR", "ino={}", ino);
         let cwd = chdirin(&self.root);
         let mut dl = self.data.lock().unwrap();
         let inv = inv_setattr_before(
-            callid, req, &self.root, ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime,
+            callid, &req, &self.root, ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime,
             chgtime, bkuptime, flags, &mut dl,
         );
-        let ids = set_ids(callid, req.into(), None);
+        let ids = set_ids(callid, req, None);
         let ip = &dl.INODE_PATHS;
         let path = ip.get(ino);
         log_more!(callid, "path={:?}", path);
@@ -197,5 +198,86 @@ impl InvFS {
             Ok(v) => reply.attr(&TTL, &v),
             Err(v) => reply.error(v),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsString;
+
+    use crate::{req_rep::{Request, KernelConfig, ReplyCreate, ReplyAttr}, fs::TTL};
+
+
+    #[test]
+    fn test_setattr_none() {
+        let mut ifs = crate::test::create_ifs();
+        ifs.do_init(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            &KernelConfig::empty(),
+        )
+        .unwrap();
+        let rep_c = ReplyCreate::new();
+        ifs.do_create(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            1,
+            &OsString::from("foo"),
+            0,
+            0,
+            libc::O_CREAT,
+            &rep_c,
+        );
+        let rep = ReplyAttr::new();
+        ifs.do_setattr(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            rep_c.get().unwrap().1.ino,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            &rep,
+        );
+        assert_eq!(
+            rep.get(),
+            Ok((
+                TTL,
+                fuser::FileAttr {
+                    ino: rep_c.get().unwrap().1.ino,
+                    size: 0,
+                    blocks: 0,
+                    atime: rep_c.get().unwrap().1.atime,
+                    mtime: rep_c.get().unwrap().1.mtime,
+                    ctime: rep_c.get().unwrap().1.ctime,
+                    crtime: rep_c.get().unwrap().1.crtime,
+                    kind: fuser::FileType::RegularFile,
+                    perm: 0,
+                    nlink: 1,
+                    uid: 0,
+                    gid: 0,
+                    rdev: 0,
+                    blksize: 4096,
+                    flags: 0
+                },
+            ))
+        );
     }
 }
