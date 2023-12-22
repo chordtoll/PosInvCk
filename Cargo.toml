@@ -12,12 +12,12 @@ rust-version = "1.60.0"
 [dependencies]
 asserteq_pretty = "0.0"
 asserteq_pretty_macros = "0.0"
-fuser = "0.13.0"
+fuser = "0.14.0"
 lazy_static = "1.4.0"
-libc = { default-features = false, version = "0.2.149" }
+libc = { default-features = false, version = "0.2.149", features = ["extra_traits"] }
 maplit = "1.0.2"
-once_cell = "=1.18.0"
-procfs = { default-features = false, version = "0.15.1" }
+once_cell = "1.19.0"
+procfs = { default-features = false, version = "0.16.0" }
 ron = "0.8.0"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
