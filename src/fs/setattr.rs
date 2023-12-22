@@ -282,4 +282,223 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn test_setattr_mode() {
+        let mut ifs = crate::test::create_ifs();
+        ifs.do_init(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            &KernelConfig::empty(),
+        )
+        .unwrap();
+        let rep_c = ReplyCreate::new();
+        ifs.do_create(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            1,
+            &OsString::from("foo"),
+            0,
+            0,
+            libc::O_CREAT,
+            &rep_c,
+        );
+        let rep = ReplyAttr::new();
+        ifs.do_setattr(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            rep_c.get().unwrap().1.ino,
+            Some(0o7777),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            &rep,
+        );
+        assert_eq!(
+            rep.get(),
+            Ok((
+                TTL,
+                fuser::FileAttr {
+                    ino: rep_c.get().unwrap().1.ino,
+                    size: 0,
+                    blocks: 0,
+                    atime: rep_c.get().unwrap().1.atime,
+                    mtime: rep_c.get().unwrap().1.mtime,
+                    ctime: rep.get().unwrap().1.ctime,
+                    crtime: rep_c.get().unwrap().1.crtime,
+                    kind: fuser::FileType::RegularFile,
+                    perm: 0o7777,
+                    nlink: 1,
+                    uid: 0,
+                    gid: 0,
+                    rdev: 0,
+                    blksize: 4096,
+                    flags: 0
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn test_setattr_uid() {
+        let mut ifs = crate::test::create_ifs();
+        ifs.do_init(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            &KernelConfig::empty(),
+        )
+        .unwrap();
+        let rep_c = ReplyCreate::new();
+        ifs.do_create(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            1,
+            &OsString::from("foo"),
+            0,
+            0,
+            libc::O_CREAT,
+            &rep_c,
+        );
+        let rep = ReplyAttr::new();
+        ifs.do_setattr(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            rep_c.get().unwrap().1.ino,
+            None,
+            Some(1),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            &rep,
+        );
+        assert_eq!(
+            rep.get(),
+            Ok((
+                TTL,
+                fuser::FileAttr {
+                    ino: rep_c.get().unwrap().1.ino,
+                    size: 0,
+                    blocks: 0,
+                    atime: rep_c.get().unwrap().1.atime,
+                    mtime: rep_c.get().unwrap().1.mtime,
+                    ctime: rep.get().unwrap().1.ctime,
+                    crtime: rep_c.get().unwrap().1.crtime,
+                    kind: fuser::FileType::RegularFile,
+                    perm: 0,
+                    nlink: 1,
+                    uid: 1,
+                    gid: 0,
+                    rdev: 0,
+                    blksize: 4096,
+                    flags: 0
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn test_setattr_gid() {
+        let mut ifs = crate::test::create_ifs();
+        ifs.do_init(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            &KernelConfig::empty(),
+        )
+        .unwrap();
+        let rep_c = ReplyCreate::new();
+        ifs.do_create(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            1,
+            &OsString::from("foo"),
+            0,
+            0,
+            libc::O_CREAT,
+            &rep_c,
+        );
+        let rep = ReplyAttr::new();
+        ifs.do_setattr(
+            Request {
+                uid: 0,
+                gid: 0,
+                pid: 0,
+            },
+            rep_c.get().unwrap().1.ino,
+            None,
+            None,
+            Some(1),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            &rep,
+        );
+        assert_eq!(
+            rep.get(),
+            Ok((
+                TTL,
+                fuser::FileAttr {
+                    ino: rep_c.get().unwrap().1.ino,
+                    size: 0,
+                    blocks: 0,
+                    atime: rep_c.get().unwrap().1.atime,
+                    mtime: rep_c.get().unwrap().1.mtime,
+                    ctime: rep.get().unwrap().1.ctime,
+                    crtime: rep_c.get().unwrap().1.crtime,
+                    kind: fuser::FileType::RegularFile,
+                    perm: 0,
+                    nlink: 1,
+                    uid: 0,
+                    gid: 1,
+                    rdev: 0,
+                    blksize: 4096,
+                    flags: 0
+                },
+            ))
+        );
+    }
 }
