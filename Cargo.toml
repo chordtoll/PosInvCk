@@ -14,7 +14,7 @@ asserteq_pretty = "0.0"
 asserteq_pretty_macros = "0.0"
 fuser = "0.14.0"
 lazy_static = "1.4.0"
-libc = { default-features = false, version = "0.2.149", features = ["extra_traits"] }
+libc = { default-features = false, version = "0.2.152", features = ["extra_traits"] }
 maplit = "1.0.2"
 once_cell = "1.19.0"
 procfs = { default-features = false, version = "0.16.0" }
