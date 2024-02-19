@@ -21,7 +21,7 @@ procfs = { default-features = false, version = "0.16.0" }
 ron = "0.8.0"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
-serde_yaml = "0.9.25"
+serde_yaml = "0.9.32"
 stfu8 = "0.2.6"
 walkdir = { version = "2.3.3", optional = true }
 xattr = "1.3.1"
