@@ -40,4 +40,4 @@ check-contents = ["walkdir"]
 members=[]
 
 [dev-dependencies]
-uuid = { version = "1.4.1", features = ["v4"] }
+uuid = { version = "1.8.0", features = ["v4"] }
