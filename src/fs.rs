@@ -581,7 +581,7 @@ pub fn chdirout(prev: PathBuf) {
 }
 
 fn set_ids(callid: CallID, req: crate::req_rep::Request, umask: Option<u32>) -> Ids {
-    let gids = get_groups(req.pid().try_into().unwrap()).unwrap_or(vec![]);
+    let gids = get_groups(req.pid().try_into().unwrap()).unwrap_or_default();
     log_more!(
         callid,
         "REQ: uid={},gid={},gids={:?}",

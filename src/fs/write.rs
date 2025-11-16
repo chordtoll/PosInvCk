@@ -158,7 +158,7 @@ mod tests {
             rep.get().unwrap().1.ino,
             o_rep.get().unwrap().0,
             0,
-            &[b'f', b'o', b'o'],
+            b"foo",
             0,
             0,
             None,

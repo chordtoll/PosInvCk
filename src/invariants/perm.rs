@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, fs::Metadata, os::linux::fs::MetadataExt, path:
 use crate::fs::get_groups;
 
 pub fn sgids(pid: u32) -> BTreeSet<u32> {
-    BTreeSet::from_iter(get_groups(pid.try_into().unwrap()).unwrap_or(vec![]))
+    BTreeSet::from_iter(get_groups(pid.try_into().unwrap()).unwrap_or_default())
 }
 
 #[derive(Debug)]
