@@ -41,3 +41,6 @@ members=[]
 
 [dev-dependencies]
 uuid = { version = "1.4.1", features = ["v4"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }

@@ -34,7 +34,7 @@ impl InodeMapper {
     }
 
     pub fn insert(&mut self, ino: u64, child: PathBuf) -> u64 {
-        if child == PathBuf::from(".") {
+        if *child == *"." {
             return 1;
         }
         match self.0.entry(ino) {
