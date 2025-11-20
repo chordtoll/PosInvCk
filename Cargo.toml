@@ -12,7 +12,7 @@ rust-version = "1.60.0"
 [dependencies]
 asserteq_pretty = "0.0"
 asserteq_pretty_macros = "0.0"
-fuser = "0.14.0"
+fuser = "0.16.0"
 lazy_static = "1.4.0"
 libc = { default-features = false, version = "0.2.177", features = ["extra_traits"] }
 maplit = "1.0.2"
